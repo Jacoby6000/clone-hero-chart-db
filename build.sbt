@@ -28,7 +28,7 @@ libraryDependencies ++= Seq(
   "com.codecommit" %% "shims" % "1.0",
 
   // security
-  "io.github.jmcardon" %% "tsec-http4s" % tsecV
+  "io.github.jmcardon" %% "tsec-http4s" % tsecVersion
 )
 
 // make scalac more betterer
