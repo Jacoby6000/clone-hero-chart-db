@@ -19,7 +19,7 @@ libraryDependencies ++= Seq(
   "org.tpolecat" %% "doobie-core"      % doobieVersion,
   "org.tpolecat" %% "doobie-postgres"  % doobieVersion,
   "org.tpolecat" %% "doobie-scalatest" % doobieVersion % "it",
-  
+
   // sane enumerations
   "com.beachape" %% "enumeratum"          % enumeratumVersion,
   "com.beachape" %% "enumeratum-argonaut" % enumeratumVersion,
@@ -28,7 +28,10 @@ libraryDependencies ++= Seq(
   "com.codecommit" %% "shims" % "1.0",
 
   // security
-  "io.github.jmcardon" %% "tsec-http4s" % tsecVersion
+  "io.github.jmcardon" %% "tsec-http4s" % tsecVersion,
+
+  // google drive
+  "edu.eckerd" %% "google-api-scala" % "0.1.1"
 )
 
 // make scalac more betterer
@@ -64,7 +67,6 @@ scalacOptions ++= Seq(
   "-Xlint:unsound-match",              // Pattern match may not be typesafe.
   "-Yno-adapted-args",                 // Do not adapt an argument list (either by inserting () or creating a tuple) to match the receiver.
   "-Ypartial-unification",             // Enable partial unification in type constructor inference
-  "-Ywarn-dead-code",                  // Warn when dead code is identified.
   "-Ywarn-extra-implicit",             // Warn when more than one implicit parameter section is defined.
   "-Ywarn-inaccessible",               // Warn about inaccessible types in method signatures.
   "-Ywarn-infer-any",                  // Warn when a type argument is inferred to be `Any`.
@@ -73,10 +75,7 @@ scalacOptions ++= Seq(
   "-Ywarn-numeric-widen",              // Warn when numerics are widened.
   "-Ywarn-unused:implicits",           // Warn if an implicit parameter is unused.
   "-Ywarn-unused:imports",             // Warn if an import selector is not referenced.
-  "-Ywarn-unused:locals",              // Warn if a local definition is unused.
-  "-Ywarn-unused:params",              // Warn if a value parameter is unused.
   "-Ywarn-unused:patvars",             // Warn if a variable bound in a pattern is unused.
-  "-Ywarn-unused:privates",            // Warn if a private member is unused.
   "-Ywarn-value-discard",              // Warn when non-Unit expression results are unused.
   "-Yno-predef"
 )
@@ -84,6 +83,9 @@ scalacOptions ++= Seq(
 // Disable unused imports and fatal warnings on the repl
 scalacOptions in (Compile, console) --= Seq("-Ywarn-unused:imports", "-Xfatal-warnings")
 
+// Woo type things
+resolvers += Resolver.sonatypeRepo("releases")
+addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.4")
 
 // enable integration tests
 configs(IntegrationTest)
