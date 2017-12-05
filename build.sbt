@@ -20,6 +20,9 @@ libraryDependencies ++= Seq(
   "org.tpolecat" %% "doobie-postgres"  % doobieVersion,
   "org.tpolecat" %% "doobie-scalatest" % doobieVersion % "it",
 
+  // testing
+  "org.scalacheck" %% "scalacheck" % "1.13.4" % "test",
+
   // sane enumerations
   "com.beachape" %% "enumeratum"          % enumeratumVersion,
   "com.beachape" %% "enumeratum-argonaut" % enumeratumVersion,
@@ -76,8 +79,7 @@ scalacOptions ++= Seq(
   "-Ywarn-unused:implicits",           // Warn if an implicit parameter is unused.
   "-Ywarn-unused:imports",             // Warn if an import selector is not referenced.
   "-Ywarn-unused:patvars",             // Warn if a variable bound in a pattern is unused.
-  "-Ywarn-value-discard",              // Warn when non-Unit expression results are unused.
-  "-Yno-predef"
+  "-Ywarn-value-discard"               // Warn when non-Unit expression results are unused.
 )
 
 // Disable unused imports and fatal warnings on the repl
