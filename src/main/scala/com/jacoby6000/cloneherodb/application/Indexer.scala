@@ -2,8 +2,7 @@ package com.jacoby6000.cloneherodb.application
 
 import com.jacoby6000.cloneherodb.data._
 import com.jacoby6000.cloneherodb.database.DatabaseSongs
-import com.jacoby6000.cloneherodb.database.Songs._
-import com.jacoby6000.cloneherodb.application.FileSystem._
+import com.jacoby6000.cloneherodb.database.Songs.{File => DatabaseFile}
 import java.time.Instant
 import java.util.UUID
 
@@ -57,7 +56,7 @@ class IndexerImpl[F[_], M[_], N[_]](
 
   def index(id: UUIDFor[File]): F[ValidationNel[StoreTreeError, List[DatabaseFile]]] = {
     for {
-      maybeDbFile <- mToF(songDb.getDatabaseFile(id))
+      maybeDbFile <- mToF(songDb.getFile(id))
       dbFile <- maybeDbFile.getOrElseF(F.raiseError[DatabaseFile](IndexTargetNotFoundInDatabase(id)))
 
       maybeFileSystemTree <-nToF(fileTree(apiKeyToPath(dbFile.apiKey.value), None))

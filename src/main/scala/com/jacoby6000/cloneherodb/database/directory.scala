@@ -1,25 +1,28 @@
 package com.jacoby6000.cloneherodb.database
 
-import com.jacoby6000.cloneherodb.application.FileSystem
-import com.jacoby6000.cloneherodb.application.FileSystem._
-import com.jacoby6000.cloneherodb.data._
+import com.jacoby6000.cloneherodb.data.{File => DataFile, _}
 import java.time.Instant
-import scalaz._
+import scalaz._, Scalaz._
+import doobie._, doobie.implicits._
+import doobie.postgres.implicits._
+import meta._
 
 object Songs {
 
-  case class DatabaseFile(
+  case class File(
     name: FileName,
-    apiKey: ApiKeyFor[File],
-    parent: Option[UUIDFor[File]],
-    fileType: FileSystem.FileType,
+    apiKey: ApiKeyFor[DataFile],
+    parent: Option[UUIDFor[DataFile]],
+    fileType: FileType,
     lastIndexed: Instant,
     firstIndexed: Instant
   )
 
+  case class Charter(name: String, username: String)
+
   case class Song(
     name: SongName,
-    directory: Option[UUIDFor[File]],
+    directory: Option[UUIDFor[DataFile]],
     lastIndexed: Instant,
     firstIndexed: Instant
   )
@@ -28,20 +31,52 @@ object Songs {
 
 trait DatabaseSongs[F[_]] {
   import Songs._
-  def getDatabaseFile(id: UUIDFor[File]): F[Option[DatabaseFile]]
-  def getSong(id: UUIDFor[Song]): F[Option[Song]]
+  def getFile(id: UUIDFor[DataFile]): F[Option[File]]
 
-  def getDatabaseFileChildren(id: UUIDFor[File]): F[List[DatabaseFile]]
-  def getSongsInDatabaseFile(id: UUIDFor[Song]): F[List[Song]]
-  def getFilesInDatabaseFile(id: UUIDFor[File]): F[List[DatabaseFile]]
-
-  def getFileByApiKey(key: ApiKeyFor[File]): F[Option[DatabaseFile]]
-  def getDatabaseFileByApiKey(key: ApiKeyFor[File]): F[Option[DatabaseFile]]
-  def getSongByApiKey(key: ApiKeyFor[File]): F[Option[Song]]
-
-  def saveFile(id: UUIDFor[File], file: DatabaseFile): F[Unit]
-  def updateFile(id: UUIDFor[File], file: DatabaseFile): F[Unit]
-  def updateFileByApiKey(file: DatabaseFile): EitherT[F, UUIDFor[File] => F[Unit], Unit]
+  def insertFile(id: UUIDFor[DataFile], file: File): F[Unit]
+  def updateFile(id: UUIDFor[DataFile], file: File): F[Boolean]
+  def updateFileByApiKey(file: File): EitherT[F, UUIDFor[DataFile] => F[Unit], Unit]
 }
 
-class DoobieDatabaseSongs()
+class DoobieDatabaseSongs extends DatabaseSongs[ConnectionIO] {
+  import Songs._
+
+  def getFile(id: UUIDFor[DataFile]): ConnectionIO[Option[File]] =
+    sql"""SELECT (name, api_key, parent, file_type, last_indexed, first_indexed) FROM files WHERE id = $id""".query[File].option
+
+  def insertFile(id: UUIDFor[DataFile], file: File): ConnectionIO[Unit] =
+    sql"""INSERT INTO files (id, name, api_key, parent, file_type, last_indexed, first_indexed) VALUES (
+      $id,
+      ${file.name},
+      ${file.apiKey},
+      ${file.parent},
+      ${file.fileType},
+      ${file.lastIndexed},
+      ${file.firstIndexed}
+    )""".update.run.map(_ => ())
+
+  def updateFile(id: UUIDFor[DataFile], file: File): ConnectionIO[Boolean] =
+    sql"""UPDATE files SET (name, api_key, parent, file_type, last_indexed) = (
+        ${file.name},
+        ${file.apiKey},
+        ${file.parent},
+        ${file.fileType},
+        ${file.lastIndexed}
+      ) WHERE id = $id""".update.run.map(_ > 0)
+
+
+  def updateFileByApiKey(file: File): EitherT[ConnectionIO, UUIDFor[DataFile] => ConnectionIO[Unit], Unit] = EitherT {
+    sql"""UPDATE files SET (name, parent, file_type, last_indexed) = (
+      ${file.name},
+      ${file.parent},
+      ${file.fileType},
+      ${file.lastIndexed}
+    ) WHERE api_key = ${file.apiKey}""".update.run.map {
+      case 1 => ().right
+      case _ => (insertFile(_: UUIDFor[DataFile], file)).left
+    }
+  }
+
+
+
+}
