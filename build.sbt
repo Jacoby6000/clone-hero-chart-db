@@ -97,8 +97,8 @@ Defaults.itSettings
 //
 val dbHost = "localhost"
 val dbPort = 5432
-val db = "clone-hero-db"
-val user = "clone-hero-db"
+val db = "clone_hero_db"
+val user = "clone_hero_db"
 
 flywayUrl := s"jdbc:postgresql://$dbHost:$dbPort/$db"
 flywayUser := user
