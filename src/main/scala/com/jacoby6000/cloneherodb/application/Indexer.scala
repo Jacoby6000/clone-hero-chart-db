@@ -41,7 +41,7 @@ object Indexer {
 }
 
 trait Indexer[F[_]] {
-  def index(id: UUIDFor[File]): F[Boolean]
+  def index(id: UUIDFor[File]): F[ValidationNel[StoreTreeError, List[DatabaseFile]]]
 }
 
 class IndexerImpl[F[_], M[_], N[_]](
@@ -52,7 +52,7 @@ class IndexerImpl[F[_], M[_], N[_]](
     F: MonadError[F, IndexerError],
     N: Monad[N],
     M: Monad[M]
-) {
+) extends Indexer[F] {
 
   def index(id: UUIDFor[File]): F[ValidationNel[StoreTreeError, List[DatabaseFile]]] = {
     for {
