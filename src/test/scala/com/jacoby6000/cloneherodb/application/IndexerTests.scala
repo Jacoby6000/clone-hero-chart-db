@@ -1,5 +1,5 @@
 package com.jacoby6000.cloneherodb.application
-
+/*
 import cats.effect.IO
 import org.scalacheck._
 import FileSystem._
@@ -32,3 +32,4 @@ object IndexerSpecification extends Properties("Indexer") {
       parts <- Gen.listOfN(depth, Gen.alphaStr).map(_.map(PathPart(_)))
     } yield parts.tail.foldLeft(PathStart(parts.head).widen)((path, part) => PathSegment(path, part))
 }
+ */

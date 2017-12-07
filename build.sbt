@@ -6,14 +6,21 @@ val http4sVersion = "0.18.0-M5"
 val doobieVersion = "0.5.0-M9"
 val enumeratumVersion = "1.5.12"
 val tsecVersion = "0.0.1-M5"
+val argonautVersion = "6.2"
 
 libraryDependencies ++= Seq(
+  // FP
+  "org.scalaz" %% "scalaz-core" % "7.2.17",
 
-  // http things and json
+  // http things
   "org.http4s" %% "http4s-dsl"          % http4sVersion,
   "org.http4s" %% "http4s-blaze-server" % http4sVersion,
   "org.http4s" %% "http4s-blaze-client" % http4sVersion,
-  "org.http4s" %% "http4s-argonaut"     % http4sVersion,
+
+  // JSON
+  "io.argonaut" %% "argonaut"        % argonautVersion,
+  "io.argonaut" %% "argonaut-scalaz" % argonautVersion,
+  "org.http4s"  %% "http4s-argonaut" % http4sVersion,
 
   // db access
   "org.tpolecat" %% "doobie-core"      % doobieVersion,
@@ -31,10 +38,7 @@ libraryDependencies ++= Seq(
   "com.codecommit" %% "shims" % "1.0",
 
   // security
-  "io.github.jmcardon" %% "tsec-http4s" % tsecVersion,
-
-  // google drive
-  "edu.eckerd" %% "google-api-scala" % "0.1.1"
+  "io.github.jmcardon" %% "tsec-http4s" % tsecVersion
 )
 
 // make scalac more betterer
