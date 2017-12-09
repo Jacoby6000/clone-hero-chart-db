@@ -9,7 +9,7 @@ import scala.util.Try
 
 abstract class Http4sService[F[_]: Effect] extends Http4sDsl[F] {
   type Service = HttpService[F]
-  val Service = HttpService[F](_)
+  val Service = HttpService[F] _
 
 
   object UUIDForFileVar {
