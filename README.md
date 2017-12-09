@@ -14,6 +14,8 @@ launcher (which i recommend): [paulp/sbt-extras](https://github.com/paulp/sbt-ex
 Once you have `sbt`, you'll need the jdk. For now, the project is built using `openjdk-8`.  Oracle's
 jdk works fine, too as long as you have version 8.
 
+Todo: database setup instructions
+
 ## Technology stack
 
 * [PostgreSQL](https://www.postgresql.org/): Because it's the best relational database out there.
