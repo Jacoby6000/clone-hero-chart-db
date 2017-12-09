@@ -15,5 +15,7 @@ CREATE TABLE song_ini_entries (
   last_indexed  TIMESTAMP WITH TIME ZONE NOT NULL,
   first_indexed TIMESTAMP WITH TIME ZONE NOT NULL,
 
-  CONSTRAINT no_duplicate_section_and_key UNIQUE (section, key)
-)
+  CONSTRAINT song_id_section_key_unique_index UNIQUE (song_id, section, key)
+);
+
+CREATE INDEX section_key_index ON song_ini_entries (section, key);
