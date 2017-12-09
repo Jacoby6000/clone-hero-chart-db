@@ -11,15 +11,56 @@ object settings {
   val tsecVersion = "0.0.1-M5"
   val argonautVersion = "6.2"
 
+  val http4sDependencies = Seq(
+      "org.http4s" %% "http4s-dsl"          % http4sVersion,
+      "org.http4s" %% "http4s-blaze-server" % http4sVersion,
+      "org.http4s" %% "http4s-blaze-client" % http4sVersion
+  )
+
+  val jsonDependencies = Seq(
+    "io.argonaut"  %% "argonaut"            % argonautVersion,
+    "io.argonaut"  %% "argonaut-scalaz"     % argonautVersion,
+    "org.http4s"   %% "http4s-argonaut"     % http4sVersion,
+    "com.beachape" %% "enumeratum-argonaut" % enumeratumVersion
+  )
+
+  val databaseDependencies = Seq(
+    "org.tpolecat" %% "doobie-core"      % doobieVersion,
+    "org.tpolecat" %% "doobie-postgres"  % doobieVersion,
+    "org.tpolecat" %% "doobie-scalatest" % doobieVersion % "it"
+  )
+
+  val testingDependencies = Seq(
+    "org.scalacheck" %% "scalacheck" % "1.13.4" % "test",
+  )
+
+  val crytoDependencies = Seq(
+    "io.github.jmcardon" %% "tsec-http4s" % tsecVersion
+  )
+
+  val configurationDependencies = Seq(
+    "com.github.pureconfig" %% "pureconfig" % "0.8.0"
+  )
+
+  val sanityDependencies = Seq(
+    "org.scalaz"     %% "scalaz-core" % "7.2.17",          // FP
+    "com.codecommit" %% "shims"       % "1.0",             // cats/scalaz compat
+    "com.beachape"   %% "enumeratum"  % enumeratumVersion  // enums
+  )
+
+  val rootProjectDependencies =
+    http4sDependencies ++
+      jsonDependencies ++
+      databaseDependencies ++
+      testingDependencies ++
+      crytoDependencies ++
+      configurationDependencies ++
+      sanityDependencies
+
   lazy val commonSettings = Seq(
     scalaVersion := "2.12.4",
 
-    libraryDependencies ++= Seq(
-      "org.scalaz"     %% "scalaz-core" % "7.2.17",          // FP
-      "com.codecommit" %% "shims"       % "1.0",             // cats/scalaz compat
-      "org.scalacheck" %% "scalacheck"  % "1.13.4" % "test", // property testing
-      "com.beachape"   %% "enumeratum"  % enumeratumVersion  // enums
-    ),
+    libraryDependencies ++= sanityDependencies,
 
     resolvers += Resolver.sonatypeRepo("releases"),
     addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.4"),

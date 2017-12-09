@@ -8,31 +8,10 @@ lazy val server = (project in file("."))
   .settings(
     resolvers += "jmcardon at bintray" at "https://dl.bintray.com/jmcardon/tsec",
 
-    libraryDependencies ++= Seq(
-      // http things
-      "org.http4s" %% "http4s-dsl"          % http4sVersion,
-      "org.http4s" %% "http4s-blaze-server" % http4sVersion,
-      "org.http4s" %% "http4s-blaze-client" % http4sVersion,
-
-      // JSON
-      "io.argonaut"  %% "argonaut"            % argonautVersion,
-      "io.argonaut"  %% "argonaut-scalaz"     % argonautVersion,
-      "org.http4s"   %% "http4s-argonaut"     % http4sVersion,
-      "com.beachape" %% "enumeratum-argonaut" % enumeratumVersion,
-
-      // db access
-      "org.tpolecat" %% "doobie-core"      % doobieVersion,
-      "org.tpolecat" %% "doobie-postgres"  % doobieVersion,
-      "org.tpolecat" %% "doobie-scalatest" % doobieVersion % "it",
-
-      // testing
-      "org.scalacheck" %% "scalacheck" % "1.13.4" % "test",
-
-      // security
-      "io.github.jmcardon" %% "tsec-http4s" % tsecVersion
-    )
+    libraryDependencies ++= rootProjectDependencies
   )
 
+// configuration sub-project build located in <clone-hero-chart-db>/project/metabuild.sbt
 lazy val config = ProjectRef(file("project"), "config")
 
 val dbHost = "localhost"

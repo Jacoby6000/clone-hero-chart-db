@@ -4,9 +4,7 @@ val config =
   project
     .settings(commonSettings)
     .settings(
-      libraryDependencies ++= Seq(
-        "com.github.pureconfig" %% "pureconfig" % "0.8.0" // configuration
-      )
+      libraryDependencies ++= configurationDependencies
     )
 
 val build = (project in file("."))
