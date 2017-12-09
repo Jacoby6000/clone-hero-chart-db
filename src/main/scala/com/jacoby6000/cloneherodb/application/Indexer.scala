@@ -6,8 +6,12 @@ import com.jacoby6000.cloneherodb.database.Songs.{File => DatabaseFile}
 import java.time.Instant
 import java.util.UUID
 
-import scalaz._, Scalaz._
+import scalaz._
+import Scalaz._
 import Indexer._
+import com.jacoby6000.cloneherodb.application.filesystem.FileSystem
+
+import scalaz.Maybe.{Empty, Just}
 
 object Indexer {
   sealed trait IndexerError
@@ -15,23 +19,23 @@ object Indexer {
   case class IndexTargetNotFoundInFileSystem(key: ApiKey) extends IndexerError
 
   sealed trait FileTree {
-    def findByPath(path: FilePath): Option[FileTree] =
+    def findByPath(path: FilePath): Maybe[FileTree] =
       this match {
-        case Leaf(file) => if (file.path == path) Some(this) else None
-        case Node(file, _) if(file.path == path) => Some(this)
-        case Node(file, children) if(file.path.contains(path)) =>
-          children.flatMap(_.findByPath(path)).headOption
+        case Leaf(file) => if (file.path == path) Just(this) else Empty()
+        case Node(file, _) if file.path == path => Just(this)
+        case Node(file, children) if file.path.containsSub(path) =>
+          children.flatMap(_.findByPath(path).toIList).headMaybe
 
       }
 
-    def fold[A](node: (File, List[A]) => A, leaf: File => A): A =
+    def fold[A](node: (File, IList[A]) => A, leaf: File => A): A =
       this match {
         case Leaf(file) => leaf(file)
         case Node(file, children) => node(file, children.map(_.fold(node, leaf)))
       }
 
   }
-  case class Node(file: File, children: List[FileTree]) extends FileTree
+  case class Node(file: File, children: IList[FileTree]) extends FileTree
   case class Leaf(file: File) extends FileTree
 
   sealed trait StoreTreeError { def widen: StoreTreeError = this }
@@ -59,40 +63,40 @@ class IndexerImpl[F[_], M[_], N[_]](
       maybeDbFile <- mToF(songDb.getFile(id))
       dbFile <- maybeDbFile.getOrElseF(F.raiseError[DatabaseFile](IndexTargetNotFoundInDatabase(id)))
 
-      maybeFileSystemTree <-nToF(fileTree(apiKeyToPath(dbFile.apiKey.value), None))
+      maybeFileSystemTree <-nToF(fileTree(apiKeyToPath(dbFile.apiKey.value), Empty()))
       fileSystemTree <- maybeFileSystemTree.getOrElseF(F.raiseError[FileTree](IndexTargetNotFoundInFileSystem(dbFile.apiKey.value)))
 
-      storedTree <- mToF(storeTree(fileSystemTree, None))
+      storedTree <- mToF(storeTree(fileSystemTree, Empty()))
     } yield storedTree
   }
 
 
-  def apiKeyToPath(key: ApiKey): PathStart =
+  def apiKeyToPath(key: ApiKey): FilePath =
     key match {
-      case GoogleApiKey(key) => PathStart(PathPart(key))
+      case GoogleApiKey(key) => filePath(PathPart(key))
     }
 
   def pathToApiKey(path: FilePath): ApiKey =
-    GoogleApiKey(path.child.value)
+    GoogleApiKey(path.end.value)
 
-  def fileTree(start: FilePath, maxDepth: Option[Int]): N[Option[FileTree]] =
+  def fileTree(start: FilePath, maxDepth: Maybe[Int]): N[Maybe[FileTree]] =
     fileSystem.fileAt(start).flatMap {
-      case None => N.point(None)
-      case Some(file) =>
+      case Empty() => N.point(Empty())
+      case Just(file) =>
         file.fileType match {
           case FileType.Directory =>
             for {
               subFiles <- fileSystem.childrenOf(file.path)
               trees <- subFiles.traverse(subFile => fileTree(subFile.path, maxDepth.map(_ - 1)))
             } yield {
-              Some(Node(file, trees.collect { case Some(s) => s }))
+              Just(Node(file, trees.flatMap(_.toIList)))
             }
           case _ =>
-            N.point(Some(Leaf(file)))
+            N.point(Just(Leaf(file)))
         }
     }
 
-  def storeTree(tree: FileTree, parent: Option[UUIDFor[File]]): M[ValidationNel[StoreTreeError, List[DatabaseFile]]] = {
+  def storeTree(tree: FileTree, parent: Maybe[UUIDFor[File]]): M[ValidationNel[StoreTreeError, List[DatabaseFile]]] = {
     lazy val fileId: UUIDFor[File] = UUID.randomUUID().asEntityId
 
     def saveFile(file: DatabaseFile): M[Unit] =
@@ -109,7 +113,7 @@ class IndexerImpl[F[_], M[_], N[_]](
       case Node(file, subTree) =>
         for {
           saveDirResult <- saveDir(file)
-          saveSubtreeResult <- subTree.traverse(storeTree(_, Some(fileId)))
+          saveSubtreeResult <- subTree.traverse(storeTree(_, Just(fileId)))
         } yield (saveDirResult :: saveSubtreeResult).suml
 
       case Leaf(file) =>
@@ -122,7 +126,7 @@ class IndexerImpl[F[_], M[_], N[_]](
     }
   }
 
-  def fileToDirectory(file: File, parent: Option[UUIDFor[File]]): Validation[StoreTreeError, DatabaseFile] =
+  def fileToDirectory(file: File, parent: Maybe[UUIDFor[File]]): Validation[StoreTreeError, DatabaseFile] =
     file.fileType match {
       case FileType.Directory =>
         DatabaseFile(

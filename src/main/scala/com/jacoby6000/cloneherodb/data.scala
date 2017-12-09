@@ -1,12 +1,19 @@
 package com.jacoby6000.cloneherodb
 
+import java.nio.file.{Path, Paths}
 import java.util.UUID
+
 import enumeratum._
-import scalaz.{Enum => _, _}, Scalaz._
+
+import scalaz.{Enum => _, _}
+import Scalaz._
+import scalaz.Maybe.{Empty, Just}
 
 object data {
   case class SongName(value: String) extends AnyVal
   case class DirectoryName(value: String) extends AnyVal
+
+
 
 
   sealed trait ApiKey
@@ -27,48 +34,56 @@ object data {
   }
 
   case class PathPart(value: String) extends AnyVal {
-    def /(pathPart: PathPart): PathSegment = PathSegment(PathStart(this), pathPart)
+    def /(pathPart: PathPart): FilePath = filePath(this, pathPart)
   }
   case class FileName(value: String) extends AnyVal
 
-  sealed trait FilePath {
-    def widen: FilePath = this
+  implicit val dequeueMonad: MonadPlus[Dequeue] =
+    new MonadPlus[Dequeue] {
+      override def point[A](a: => A): Dequeue[A] = Dequeue(a)
+      override def bind[A, B](fa: Dequeue[A])(f: (A) => Dequeue[B]) =
+        fa.foldLeft(Dequeue.empty[B]) {
+          case (acc, a) => acc ++ f(a)
 
-    def contains(path: FilePath): Boolean =
-      if(path == this) true else {
-        path match {
-          case PathStart(_) => false
-          case PathSegment(parent, _) => this.contains(parent)
+        }
+      override def empty[A] = Dequeue.empty[A]
+      override def plus[A](a: Dequeue[A], b: => Dequeue[A]) = a ++ b
+    }
+
+  type FilePath = OneAnd[Dequeue, PathPart]
+
+  def filePath(pathPart: PathPart): FilePath = OneAnd.oneAnd(pathPart, Dequeue.empty)
+  def filePath(pathPart: PathPart, tail: PathPart*): FilePath = OneAnd(pathPart, Dequeue(tail: _*))
+  def filePath(pathPart: PathPart, tail: Dequeue[PathPart]): FilePath = OneAnd(pathPart, tail)
+
+
+  implicit class FilePathOps(val path: FilePath) extends AnyVal {
+    def beginning: PathPart = path.head
+    def end: PathPart = path.tail.backMaybe.getOrElse(path.head)
+
+    def upDir: Maybe[FilePath] =
+      path.tail.unsnoc.map { case (_, q) => filePath(path.head, q)}
+
+    def /(part: PathPart): FilePath = /(filePath(part))
+    def /(subPath: FilePath): FilePath = path |+| subPath
+
+    def javaPath: Path = Paths.get(path.map(_.value).foldLeft(".")(_ + "/" + _))
+
+
+    def containsSub(otherPath: FilePath): Boolean = {
+      def go(p: Dequeue[PathPart]): Boolean = {
+        if (p == otherPath) true
+        else p.uncons match {
+          case Just((_, unconsed)) => go(unconsed)
+          case Empty() => false
         }
       }
 
-    def fold[A](f: PathPart => A, g: (FilePath, PathPart) => A): A =
-      this match {
-        case PathStart(path) => f(path)
-        case PathSegment(parent, child) => g(parent, child)
-      }
-
-    def child: PathPart = fold(a => a, (_, a) => a)
-
-    def parentOption: Option[FilePath] =
-      fold(_ => none, (seg, _) => seg.some)
-
-    def /(pathPart: PathPart): PathSegment = PathSegment(this, pathPart)
-
-    def prepend(path: FilePath): FilePath =
-      fold(
-        PathSegment(path, _),
-        (parent, child) => PathSegment(parent.prepend(path), child)
-      )
-
-    def append(path: FilePath): FilePath =
-      path.prepend(this)
+      go(otherPath.head +: otherPath.tail)
+    }
   }
 
-  case class PathStart(startPart: PathPart) extends FilePath
-  case class PathSegment(parent: FilePath, childPath: PathPart) extends FilePath
-
-  case class File(path: FilePath, name: FileName, fileSize: Option[Int], fileType: FileType)
+  case class File(path: FilePath, name: FileName, fileSize: Maybe[Int], fileType: FileType)
 
   sealed trait FileType extends EnumEntry
   object FileType extends Enum[FileType] {

@@ -12,7 +12,7 @@ object Songs {
   case class File(
     name: FileName,
     apiKey: ApiKeyFor[DataFile],
-    parent: Option[UUIDFor[DataFile]],
+    parent: Maybe[UUIDFor[DataFile]],
     fileType: FileType,
     lastIndexed: Instant,
     firstIndexed: Instant
@@ -22,7 +22,7 @@ object Songs {
 
   case class Song(
     name: SongName,
-    directory: Option[UUIDFor[DataFile]],
+    directory: Maybe[UUIDFor[DataFile]],
     lastIndexed: Instant,
     firstIndexed: Instant
   )
@@ -31,7 +31,7 @@ object Songs {
 
 trait DatabaseSongs[F[_]] {
   import Songs._
-  def getFile(id: UUIDFor[DataFile]): F[Option[File]]
+  def getFile(id: UUIDFor[DataFile]): F[Maybe[File]]
 
   def insertFile(id: UUIDFor[DataFile], file: File): F[Unit]
   def updateFile(id: UUIDFor[DataFile], file: File): F[Boolean]
@@ -41,8 +41,10 @@ trait DatabaseSongs[F[_]] {
 class DoobieDatabaseSongs extends DatabaseSongs[ConnectionIO] {
   import Songs._
 
-  def getFile(id: UUIDFor[DataFile]): ConnectionIO[Option[File]] =
-    sql"""SELECT (name, api_key, parent, file_type, last_indexed, first_indexed) FROM files WHERE id = $id""".query[File].option
+  def getFile(id: UUIDFor[DataFile]): ConnectionIO[Maybe[File]] =
+    sql"""SELECT (name, api_key, parent, file_type, last_indexed, first_indexed)
+          FROM files
+          WHERE id = $id""".query[File].maybe
 
   def insertFile(id: UUIDFor[DataFile], file: File): ConnectionIO[Unit] =
     sql"""INSERT INTO files (id, name, api_key, parent, file_type, last_indexed, first_indexed) VALUES (

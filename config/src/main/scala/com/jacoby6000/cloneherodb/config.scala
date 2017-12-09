@@ -27,7 +27,8 @@ object config {
 
   case class CloneHeroDbConfiguration(
     database: DatabaseConfiguration,
-    google: GoogleApiConfiguration
+    google: GoogleApiConfiguration,
+    api: ApiConfiguration
   )
 
   case class GoogleApiConfiguration(
@@ -51,4 +52,6 @@ object config {
     username: String,
     password: Option[String]
   )
+
+  case class ApiConfiguration(bindTo: String, port: Int)
 }

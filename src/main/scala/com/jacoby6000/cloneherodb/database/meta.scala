@@ -2,10 +2,19 @@ package com.jacoby6000.cloneherodb.database
 
 import doobie._
 import com.jacoby6000.cloneherodb.data._
-import enumeratum.{ Enum, EnumEntry }
+import enumeratum.{Enum, EnumEntry}
+
 import scala.reflect.runtime.universe.TypeTag
+import scalaz._
 
 object meta {
+
+  implicit class QueryOps[A](query: Query0[A]) {
+    def maybe: ConnectionIO[Maybe[A]] = query.option.map(Maybe.fromOption)
+  }
+
+  implicit def maybeComposite[A](implicit composite: Composite[Option[A]]): Composite[Maybe[A]] =
+    composite.imap(Maybe.fromOption)(_.toOption)
 
   implicit val songNameMeta: Meta[SongName] =
     Meta[String].xmap[SongName](SongName(_), _.value)
