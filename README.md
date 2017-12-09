@@ -37,7 +37,6 @@ create a pull request to fix it.
 
 ## Design Philosophy
 
-This project is to be done in a functionally pure fashion.  
 * No null values.
 * No exceptions.
 * No type casing. (`isInstanceOf`)
@@ -47,7 +46,7 @@ This project is to be done in a functionally pure fashion.
 * No calls to `notify` or `wait`. In fact, avoid most of `Predef`.
 * No calls to `classOf` or `getClass`.
 
-This leads to a use of a subset of the scala language, which some call `scalazzi`.
+This leads to the use of a subset of the scala language, which some call `scalazzi`.
 
 Doing this, we will create an application made up of more composable components which are easier to 
 test, easier to debug, and easier to expand upon.  This means more features faster in the long run, 
