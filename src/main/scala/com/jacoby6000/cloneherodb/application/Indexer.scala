@@ -21,8 +21,8 @@ object Indexer {
   sealed trait FileTree {
     def findByPath(path: FilePath): Maybe[FileTree] =
       this match {
-        case Leaf(file) => if (file.path == path) Just(this) else Empty()
-        case Node(file, _) if file.path == path => Just(this)
+        case Leaf(file) => if (file.path === path) Just(this) else Empty()
+        case Node(file, _) if file.path === path => Just(this)
         case Node(file, children) if file.path.containsSub(path) =>
           children.flatMap(_.findByPath(path).toIList).headMaybe
 

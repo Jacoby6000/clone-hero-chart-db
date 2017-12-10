@@ -26,7 +26,7 @@ object meta {
   }
 
   implicit val songNameMeta: Meta[SongName] =
-    Meta[String].xmap[SongName](SongName, _.value)
+    Meta[String].xmap[SongName](SongName(_), _.value)
 
   implicit def entityIdMeta[A, B: Meta](implicit tt: TypeTag[EntityId[A, B]]): Meta[EntityId[A, B]] =
     Meta[B].xmap[EntityId[A, B]](EntityId(_), _.value)
