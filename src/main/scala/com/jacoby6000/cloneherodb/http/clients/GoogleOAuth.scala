@@ -1,19 +1,24 @@
 package com.jacoby6000.cloneherodb.http.clients
 
 
-import argonaut._, Argonaut._
+import argonaut._
+import Argonaut._
 import cats.effect.Effect
-import enumeratum.{ ArgonautEnum, Enum, EnumEntry }
-import enumeratum.values.{ StringArgonautEnum, StringEnum, StringEnumEntry }
+import enumeratum.{ArgonautEnum, Enum, EnumEntry}
+import enumeratum.values.{StringArgonautEnum, StringEnum, StringEnumEntry}
 import fs2.Stream
 import java.time.Instant
-import org.http4s.{ EntityDecoder, Header, Headers, Method, Request, Uri }
+
+import org.http4s.{EntityDecoder, Header, Headers, Method, Request, Uri}
 import org.http4s.client.Client
+
 import scala.concurrent.duration._
-import tsec.signature.core.{ SigAlgoTag, SignaturePrograms }
-import tsec.signature.imports.{ RSASignature, SHA256withRSA, SigPublicKey, SigPrivateKey, SignatureKeyError }
+import tsec.signature.core.SigAlgoTag
+import tsec.signature.imports.{JCASignerPure, RSASignature, SHA256withRSA, SigPrivateKey, SignatureKeyError}
 import tsec.common._
-import scalaz._, Scalaz._
+
+import scalaz._
+import Scalaz._
 import shims._
 
 object GoogleOAuth {
@@ -136,14 +141,15 @@ object GoogleOAuth {
     implicit val oAuthResponseDecoder: DecodeJson[OAuthResponse] =
       jdecode3L(OAuthResponse.apply _)("access_token", "token_type", "expires_in")
   }
+
 }
 
 import GoogleOAuth._
 
-class GoogleOAuth[F[_], C](
+class GoogleOAuth[F[_]](
   client: Client[F],
   targetDescriptor: OAuthTargetDescriptor,
-  signatureProgram: SignaturePrograms.Aux[F, SHA256withRSA, SigPublicKey[SHA256withRSA], SigPrivateKey[SHA256withRSA], C],
+  signer: JCASignerPure[F, SHA256withRSA],
   key: SigPrivateKey[SHA256withRSA])(
   implicit F: Effect[F]
 ) {
@@ -158,14 +164,14 @@ class GoogleOAuth[F[_], C](
       val claims = GoogleJwtClaims(issuer, targetDescriptor, Scopes(scopes), now.plusMillis(duration.toMillis), now)
       val header = OAuthHeader("RS256", "JWT")
 
-      val encryptedClaims = signatureProgram.sign(claims.asJson.nospaces.utf8Bytes, key).map(_.toB64UrlString)
-      val encryptedHeader = signatureProgram.sign(header.asJson.nospaces.utf8Bytes, key).map(_.toB64UrlString)
+      val encryptedClaims = signer.sign(claims.asJson.nospaces.utf8Bytes, key).map(_.toB64UrlString)
+      val encryptedHeader = signer.sign(header.asJson.nospaces.utf8Bytes, key).map(_.toB64UrlString)
 
       val encryptedClaimsWithHeader = (encryptedHeader |@| encryptedClaims)(_ + "." + _)
 
       for {
         payload <- encryptedClaimsWithHeader
-        signature <- signatureProgram.sign(payload.utf8Bytes, key)
+        signature <- signer.sign(payload.utf8Bytes, key)
         jwt = payload + "." + signature.toB64UrlString
 
         request = Request(
