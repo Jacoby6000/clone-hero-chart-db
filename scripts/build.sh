@@ -1,3 +1,3 @@
 #!/bin/bash
 
-sbt ++$TRAVIS_SCALA_VERSION flywayMigrate compile test
+sbt ++$TRAVIS_SCALA_VERSION flywayMigrate compile test it:test
