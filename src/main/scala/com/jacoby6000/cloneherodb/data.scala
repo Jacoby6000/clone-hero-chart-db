@@ -1,6 +1,8 @@
 package com.jacoby6000.cloneherodb
 
+import java.nio.file.Path
 import java.util.UUID
+
 import scalaz._
 import Scalaz._
 
@@ -13,6 +15,15 @@ package object data {
   def filePath(pathPart: PathPart): FilePath = OneAnd(pathPart, Dequeue.empty)
   def filePath(pathPart: PathPart, tail: PathPart*): FilePath = OneAnd(pathPart, Dequeue(tail: _*))
   def filePath(pathPart: PathPart, tail: Dequeue[PathPart]): FilePath = OneAnd(pathPart, tail)
+
+  def filePath(path: Path): FilePath = {
+    path
+      .toString
+      .split(Array('/', '\\'))
+      .map(PathPart(_))
+      .toList
+      .foldLeft(filePath(path"."))(_ / _)
+  }
 
   implicit def toFilePathOps(filePath: FilePath): FilePathOps =
     new FilePathOps(filePath)

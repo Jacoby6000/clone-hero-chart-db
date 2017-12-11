@@ -31,7 +31,7 @@ object settings {
   )
 
   val testingDependencies = Seq(
-    "org.scalacheck" %% "scalacheck" % "1.13.4" % "test",
+    "org.scalacheck" %% "scalacheck" % "1.13.4" % "test"
   )
 
   val crytoDependencies = Seq(
@@ -40,6 +40,10 @@ object settings {
 
   val configurationDependencies = Seq(
     "com.github.pureconfig" %% "pureconfig" % "0.8.0"
+  )
+
+  val fileSystemAccessDependencies = Seq(
+    "com.github.pathikrit" %% "better-files" % "3.4.0"
   )
 
   val sanityDependencies = Seq(
@@ -55,6 +59,7 @@ object settings {
       testingDependencies ++
       crytoDependencies ++
       configurationDependencies ++
+      fileSystemAccessDependencies ++
       sanityDependencies
 
   lazy val commonSettings = Seq(

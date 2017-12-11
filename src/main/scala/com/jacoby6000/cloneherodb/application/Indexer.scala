@@ -1,17 +1,17 @@
 package com.jacoby6000.cloneherodb.application
 
-import com.jacoby6000.cloneherodb.data._
-import com.jacoby6000.cloneherodb.database.DatabaseSongs
-import com.jacoby6000.cloneherodb.database.Songs.{File => DatabaseFile}
 import java.time.Instant
 import java.util.UUID
 
-import scalaz._
-import Scalaz._
-import Indexer._
+import com.jacoby6000.cloneherodb.application.Indexer._
 import com.jacoby6000.cloneherodb.application.filesystem.FileSystem
+import com.jacoby6000.cloneherodb.data._
+import com.jacoby6000.cloneherodb.database.DatabaseSongs
+import com.jacoby6000.cloneherodb.database.Songs.{File => DatabaseFile}
 
 import scalaz.Maybe.{Empty, Just}
+import scalaz.Scalaz._
+import scalaz._
 
 object Indexer {
   sealed trait IndexerError

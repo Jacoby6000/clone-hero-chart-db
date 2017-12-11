@@ -24,7 +24,7 @@ abstract class AbstractServer[F[_]: Effect] extends StreamApp[F] {
     def updateFileByApiKey(file: com.jacoby6000.cloneherodb.database.Songs.File): scalaz.EitherT[AbstractServer.this.G,com.jacoby6000.cloneherodb.data.UUIDFor[com.jacoby6000.cloneherodb.data.File] => AbstractServer.this.G[Unit],Unit] = ???
   }
   val fs = new FileSystem[G] {
-    def childrenOf(filePath: com.jacoby6000.cloneherodb.data.FilePath): AbstractServer.this.G[List[com.jacoby6000.cloneherodb.data.File]] = ???
+    def childrenOf(filePath: com.jacoby6000.cloneherodb.data.FilePath): AbstractServer.this.G[IList[com.jacoby6000.cloneherodb.data.File]] = ???
     def fileAt(filePath: com.jacoby6000.cloneherodb.data.FilePath): AbstractServer.this.G[Maybe[com.jacoby6000.cloneherodb.data.File]] = ???
     def parentOf(filePath: com.jacoby6000.cloneherodb.data.FilePath): AbstractServer.this.G[Maybe[com.jacoby6000.cloneherodb.data.File]] = ???
     def textContents(file: com.jacoby6000.cloneherodb.data.File): AbstractServer.this.G[Maybe[String]] = ???

@@ -1,7 +1,10 @@
 package com.jacoby6000.cloneherodb.data
 
 import enumeratum._
-import scalaz.{Equal, Maybe}
+
+import scalaz.{Enum => _, _}
+import Scalaz._
+import scalaz.Maybe.Empty
 
 case class SongName(value: String) extends AnyVal
 object SongName {
@@ -27,9 +30,11 @@ object EntityId {
 
 class AllOps[A](val a: A) extends AnyVal {
   def asEntityId[B]: EntityId[B, A] = EntityId(a)
+
+  def justIf(f: A => Boolean): Maybe[A] = if (f(a)) a.just else Empty()
 }
 
-case class File(path: FilePath, name: FileName, fileSize: Maybe[Int], fileType: FileType)
+case class File(path: FilePath, name: FileName, fileSize: Maybe[Long], fileType: FileType)
 object File {
   implicit val fileEq: Equal[File] = Equal.equalA
 }
