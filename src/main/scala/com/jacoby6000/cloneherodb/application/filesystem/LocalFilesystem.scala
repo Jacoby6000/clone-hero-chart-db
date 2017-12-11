@@ -43,11 +43,12 @@ class LocalFilesystem[F[_]](logger: Logger[F])(implicit F: Effect[F]) extends Fi
         if (file.isDirectory) FileType.Directory
         else file.extension.map(_.toLowerCase).map {
           case ".mid" => FileType.Midi
+          case ".chart" => FileType.Chart
           case ".ini" => FileType.INI
           case ".ogg" => FileType.Ogg
           case ".png" => FileType.PNG
           case ".jpg" => FileType.JPG
-          case unknown => FileType.Unknown(unknown)
+          case unknown => FileType.Unknown(unknown.stripMargin('.'))
         }.getOrElse(FileType.Unknown(""))
       )
     }

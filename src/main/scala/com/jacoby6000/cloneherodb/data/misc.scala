@@ -28,7 +28,11 @@ sealed trait ApiKey {
 case class GoogleApiKey(key: String) extends ApiKey
 case class LocalFSApiKey(path: String) extends ApiKey
 object ApiKey {
-  implicit val showApiKey: Show[ApiKey] = Show.showA[ApiKey]
+  implicit val showApiKey: Show[ApiKey] = Show.show[ApiKey] {
+    case GoogleApiKey(k) => s"google://$k"
+    case LocalFSApiKey(k) => s"file://$k"
+  }
+
   implicit val apiKeyEqual: Equal[ApiKey] = Equal.equalA
 
   def fromTypeAndKey(keyType: ApiKeyType, key: String): ApiKey =
@@ -73,6 +77,7 @@ object FileType extends Enum[FileType] {
 
   case object Directory extends FileType
   case object Midi extends FileType
+  case object Chart extends FileType
   case object INI extends FileType
   case object Ogg extends AudioFile
   case object PNG extends ImageFile

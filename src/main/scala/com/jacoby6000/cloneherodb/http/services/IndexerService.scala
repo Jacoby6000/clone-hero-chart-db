@@ -21,7 +21,7 @@ object IndexerService {
   case class ResourceIdResponse[A](id: A)
   object ResourceIdResponse {
     implicit def resourceIdResponseEncodeJson[A](implicit encoder: EncodeJson[A]): EncodeJson[ResourceIdResponse[A]] =
-      encoder.contramap(_.id)
+      EncodeJson.jencode1L[ResourceIdResponse[A], A](_.id)("id")
   }
 }
 
@@ -32,7 +32,7 @@ class IndexerService[F[_] : Effect, G[_]](indexer: Indexer[G], nt: G ~> F, logge
   val service: Service = Service {
     case POST -> IndexerRoot / "re-index" / UUIDForFileVar(uuid) =>
       logger.verbose("Recieved re-index root request.")
-      nt(indexer.index(uuid)).flatMap(result => Ok(result.toString))
+      nt(indexer.index(uuid)).flatMap(files => Ok(files.map(_.apiKey.value)))
 
     case req @ POST -> IndexerRoot =>
       logger.verbose("Recieved new index root request.")

@@ -6,6 +6,8 @@ import argonaut._
 import Argonaut._
 import com.jacoby6000.cloneherodb.data._
 
+import scalaz._, Scalaz._
+
 object codecs extends DataCodecInstances {
 
 
@@ -28,4 +30,7 @@ trait DataCodecInstances {
     )("keyType", "key")
 
   implicit val uuidCodec: CodecJson[UUID] = stringCodec.xmap(UUID.fromString _)(_.toString)
+
+  implicit def ilistCodec[A: CodecJson]: CodecJson[IList[A]] =
+    CodecJson.derived[List[A]].xmap(_.toIList)(_.toList)
 }
