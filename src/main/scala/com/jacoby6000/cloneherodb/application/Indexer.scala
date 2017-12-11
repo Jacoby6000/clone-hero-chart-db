@@ -1,5 +1,6 @@
 package com.jacoby6000.cloneherodb.application
 
+import java.nio.file.Paths
 import java.time.Instant
 import java.util.UUID
 
@@ -8,20 +9,36 @@ import com.jacoby6000.cloneherodb.application.filesystem.FileSystem
 import com.jacoby6000.cloneherodb.data._
 import com.jacoby6000.cloneherodb.database.DatabaseSongs
 import com.jacoby6000.cloneherodb.database.Songs.{File => DatabaseFile}
+import com.jacoby6000.cloneherodb.logging.Logger
 
-import scalaz.Maybe.{Empty, Just}
+import scalaz.Maybe.Just
 import scalaz.Scalaz._
 import scalaz._
 
 object Indexer {
   sealed trait IndexerError
   case class IndexTargetNotFoundInDatabase(id: UUIDFor[File]) extends IndexerError
-  case class IndexTargetNotFoundInFileSystem(key: ApiKey) extends IndexerError
+  case class IndexTargetNotFoundInFileSystem(key: ApiKeyFor[File]) extends IndexerError
 
+  object FileTree {
+    implicit val fileTreeShow: Show[FileTree] =
+      Show.show { tree =>
+        def go(n: Int, tree: FileTree): Cord =
+          Cord.stringToCord(" " * n) ++ (tree match {
+            case Leaf(file) => Cord.stringToCord(file.name.value) + "\n"
+            case Node(file, children) =>
+              Cord.stringToCord(file.name.value) ++
+                Cord.stringToCord("\n") ++
+                children.foldMap(go(n + 1, _))
+          })
+
+        Cord.stringToCord("\n") ++ go(0, tree)
+      }
+  }
   sealed trait FileTree {
     def findByPath(path: FilePath): Maybe[FileTree] =
       this match {
-        case Leaf(file) => if (file.path === path) Just(this) else Empty()
+        case Leaf(file) => if (file.path === path) Just(this) else empty
         case Node(file, _) if file.path === path => Just(this)
         case Node(file, children) if file.path.containsSub(path) =>
           children.flatMap(_.findByPath(path).toIList).headMaybe
@@ -33,24 +50,21 @@ object Indexer {
         case Leaf(file) => leaf(file)
         case Node(file, children) => node(file, children.map(_.fold(node, leaf)))
       }
-
   }
   case class Node(file: File, children: IList[FileTree]) extends FileTree
   case class Leaf(file: File) extends FileTree
 
-  sealed trait StoreTreeError { def widen: StoreTreeError = this }
-  case class NonDirectoryInDirectoryPosition(file: File) extends StoreTreeError
-  case class NonDirectoryLeaf(file: File) extends StoreTreeError
-
 }
 
 trait Indexer[F[_]] {
-  def index(id: UUIDFor[File]): F[ValidationNel[StoreTreeError, List[DatabaseFile]]]
+  def newIndex(apiKey: ApiKeyFor[File]): F[UUIDFor[File]]
+  def index(id: UUIDFor[File]): F[IList[DatabaseFile]]
 }
 
 class IndexerImpl[F[_], M[_], N[_]](
   songDb: DatabaseSongs[M],
-  fileSystem: FileSystem[N])(
+  fileSystem: FileSystem[N],
+  logger: Logger[F])(
   mToF: M ~> F, nToF: N ~> F
 )(implicit
     F: MonadError[F, IndexerError],
@@ -58,87 +72,102 @@ class IndexerImpl[F[_], M[_], N[_]](
     M: Monad[M]
 ) extends Indexer[F] {
 
-  def index(id: UUIDFor[File]): F[ValidationNel[StoreTreeError, List[DatabaseFile]]] = {
+  def newIndex(apiKey: ApiKeyFor[File]): F[UUIDFor[File]] = {
+    val keyPath = apiKeyToPath(apiKey.value)
     for {
-      maybeDbFile <- mToF(songDb.getFile(id))
-      dbFile <- maybeDbFile.getOrElseF(F.raiseError[DatabaseFile](IndexTargetNotFoundInDatabase(id)))
+      _ <- logger.verbose("Checking if the new index root at " + keyPath.asString + " exists.")
+      newIndexFile <- maybeToF(fileSystem.fileAt(keyPath), nToF)(IndexTargetNotFoundInFileSystem(apiKey))
 
-      maybeFileSystemTree <-nToF(fileTree(apiKeyToPath(dbFile.apiKey.value), Empty()))
-      fileSystemTree <- maybeFileSystemTree.getOrElseF(F.raiseError[FileTree](IndexTargetNotFoundInFileSystem(dbFile.apiKey.value)))
+      newIndexId = UUID.randomUUID().asEntityId[File]
+      _ <- logger.verbose("New index root at " + keyPath.asString + " exists. Storing in db with id " + newIndexId.value.toString)
+      _ <- mToF(songDb.insertFile(newIndexId, fileToDatabaseFile(newIndexFile, empty, makePathToApiKeyFunc(apiKey.value))))
+      _ <- logger.verbose("Successfully stored new index root " + newIndexId)
+    } yield newIndexId
+  }
 
-      storedTree <- mToF(storeTree(fileSystemTree, Empty()))
+  def index(id: UUIDFor[File]): F[IList[DatabaseFile]] = {
+    for {
+      dbFile <- maybeToF(songDb.getFile(id), mToF)(IndexTargetNotFoundInDatabase(id))
+      fileSystemTree <- maybeToF(fileTree(apiKeyToPath(dbFile.apiKey.value), empty), nToF)(IndexTargetNotFoundInFileSystem(dbFile.apiKey))
+      _ <- logger.info(fileSystemTree)
+      storedTree <- mToF(storeTree(fileSystemTree, empty, makePathToApiKeyFunc(dbFile.apiKey.value)))
     } yield storedTree
   }
 
 
-  def apiKeyToPath(key: ApiKey): FilePath =
-    key match {
-      case GoogleApiKey(key) => filePath(PathPart(key))
-    }
+  def maybeToF[G[_], A](maybeA: => G[Maybe[A]], nt: G ~> F)(raiseError: => IndexerError): F[A] =
+    for {
+      maybeResult <- nt(maybeA)
+      result <- maybeResult.getOrElseF[F](raiseAndLogError[A](raiseError))
+    } yield result
 
-  def pathToApiKey(path: FilePath): ApiKey =
-    GoogleApiKey(path.end.value)
+  def validationToF[G[_], A, B](validationA: G[Validation[A, B]], nt: G ~> F)(raiseError: A => IndexerError): F[B] =
+    for {
+      validationResult <- nt(validationA)
+      result <- validationResult.fold(err => raiseAndLogError(raiseError(err)), F.pure(_))
+    } yield result
+
+  def raiseAndLogError[A](err: IndexerError): F[A] =
+    logger.error(err.toString) *> F.raiseError[A](err)
+
+  def apiKeyToPath(key: ApiKey): FilePath =
+    key.fold(k => filePath(PathPart(k)), k => filePath(Paths.get(k)))
 
   def fileTree(start: FilePath, maxDepth: Maybe[Int]): N[Maybe[FileTree]] =
-    fileSystem.fileAt(start).flatMap {
-      case Empty() => N.point(Empty())
-      case Just(file) =>
-        file.fileType match {
-          case FileType.Directory =>
-            for {
-              subFiles <- fileSystem.childrenOf(file.path)
-              trees <- subFiles.traverse(subFile => fileTree(subFile.path, maxDepth.map(_ - 1)))
-            } yield {
-              Just(Node(file, trees.flatMap(_.toIList)))
-            }
-          case _ =>
-            N.point(Just(Leaf(file)))
-        }
-    }
+    fileSystem.fileAt(start).flatMap(_.cata(
+      file => file.fileType match {
+        case FileType.Directory =>
+          for {
+            subFiles <- fileSystem.childrenOf(file.path)
+            trees <- subFiles.traverse(subFile => fileTree(subFile.path, maxDepth.map(_ - 1)))
+          } yield {
+            Just(Node(file, trees.flatMap(_.toIList)))
+          }
+        case _ =>
+          N.point(Just(Leaf(file)))
 
-  def storeTree(tree: FileTree, parent: Maybe[UUIDFor[File]]): M[ValidationNel[StoreTreeError, List[DatabaseFile]]] = {
-    lazy val fileId: UUIDFor[File] = UUID.randomUUID().asEntityId
+      },
+      N.point(empty)
+    ))
 
-    def saveFile(file: DatabaseFile): M[Unit] =
-      songDb
-        .updateFileByApiKey(file)
-        .foldM(_.apply(fileId), M.point(_))
+  def makePathToApiKeyFunc(initialKey: ApiKey): FilePath => ApiKey =
+    initialKey.fold(
+      _ => filePath => GoogleApiKey(filePath.end.value),
+      _ => filePath => LocalFSApiKey(filePath.javaPath.toString)
+    )
 
-    def saveDir(file: File): M[ValidationNel[StoreTreeError, List[DatabaseFile]]] =
-      fileToDirectory(file, parent)
-        .traverse(dir => saveFile(dir).map(_ => List(dir)))
-        .map(_.toValidationNel)
+
+  def storeTree(tree: FileTree, parent: Maybe[UUIDFor[File]], pathToApiKey: FilePath => ApiKey): M[IList[DatabaseFile]] = {
+    val fileId: UUIDFor[File] = UUID.randomUUID().asEntityId
+
+    def saveDatabaseFile(file: DatabaseFile): M[(UUIDFor[File], DatabaseFile)] =
+      songDb.updateFileByApiKey(file).flatMap (
+        _.cata(
+          M.point(_),
+          songDb.insertFile(fileId, file).map(_ => fileId -> file)
+        )
+      )
+
+    def saveFile(file: File): M[(UUIDFor[File], DatabaseFile)] =
+      saveDatabaseFile(fileToDatabaseFile(file, parent, pathToApiKey))
 
     tree match {
       case Node(file, subTree) =>
-        for {
-          saveDirResult <- saveDir(file)
-          saveSubtreeResult <- subTree.traverse(storeTree(_, Just(fileId)))
-        } yield (saveDirResult :: saveSubtreeResult).suml
-
-      case Leaf(file) =>
-        file.fileType match {
-          case FileType.Directory =>
-            saveDir(file)
-          case _ =>
-            M.point(NonDirectoryLeaf(file).widen.failureNel[List[DatabaseFile]])
+        saveFile(file).flatMap { case (id, savedFile) =>
+          subTree.traverseM(storeTree(_, id.just, pathToApiKey)).map(savedFile :: _)
         }
+
+      case Leaf(file) => saveFile(file).map(_._2).map(IList(_))
     }
   }
 
-  def fileToDirectory(file: File, parent: Maybe[UUIDFor[File]]): Validation[StoreTreeError, DatabaseFile] =
-    file.fileType match {
-      case FileType.Directory =>
-        DatabaseFile(
-          FileName(file.name.value),
-          pathToApiKey(file.path).asEntityId,
-          parent,
-          file.fileType,
-          Instant.now(),
-          Instant.now()
-        ).success
-      case _ =>
-        NonDirectoryInDirectoryPosition(file).failure
-    }
-
+  def fileToDatabaseFile(file: File, parent: Maybe[UUIDFor[File]], pathToApiKey: FilePath => ApiKey): DatabaseFile =
+    DatabaseFile(
+      FileName(file.name.value),
+      pathToApiKey(file.path).asEntityId,
+      parent,
+      file.fileType,
+      Instant.now(),
+      Instant.now()
+    )
 }

@@ -2,27 +2,52 @@ package com.jacoby6000.cloneherodb.data
 
 import enumeratum._
 
+import scalaz.Scalaz._
 import scalaz.{Enum => _, _}
-import Scalaz._
-import scalaz.Maybe.Empty
 
 case class SongName(value: String) extends AnyVal
 object SongName {
   implicit val songNameEqual: Equal[SongName] = Equal.equalA
 }
 
-case class DirectoryName(value: String) extends AnyVal
-object DirectoryName {
-  implicit val directoryNameEqual: Equal[DirectoryName] = Equal.equalA
+case class FileName(value: String) extends AnyVal
+
+object FileName {
+  implicit val fileNameEq: Equal[FileName] = Equal.equalA
 }
 
-sealed trait ApiKey
+
+sealed trait ApiKey {
+  def fold[A](googleApiKeyF: String => A, localFSApiKeyF: String => A) =
+    this match {
+      case GoogleApiKey(s) => googleApiKeyF(s)
+      case LocalFSApiKey(s) => localFSApiKeyF(s)
+    }
+
+}
 case class GoogleApiKey(key: String) extends ApiKey
+case class LocalFSApiKey(path: String) extends ApiKey
 object ApiKey {
+  implicit val showApiKey: Show[ApiKey] = Show.showA[ApiKey]
   implicit val apiKeyEqual: Equal[ApiKey] = Equal.equalA
+
+  def fromTypeAndKey(keyType: ApiKeyType, key: String): ApiKey =
+    keyType match {
+      case ApiKeyType.GoogleApiKey => GoogleApiKey(key)
+      case ApiKeyType.LocalFSApiKey => LocalFSApiKey(key)
+    }
 }
 
-case class EntityId[A, B](value: B) extends AnyVal
+sealed trait ApiKeyType extends EnumEntry
+object ApiKeyType extends Enum[ApiKeyType] {
+  case object GoogleApiKey extends ApiKeyType
+  case object LocalFSApiKey extends ApiKeyType
+
+  val values = findValues
+}
+
+
+case class EntityId[A, +B](value: B) extends AnyVal
 object EntityId {
   implicit def entityIdEq[A, B]: Equal[EntityId[A, B]] = Equal.equalA
 }
@@ -31,7 +56,7 @@ object EntityId {
 class AllOps[A](val a: A) extends AnyVal {
   def asEntityId[B]: EntityId[B, A] = EntityId(a)
 
-  def justIf(f: A => Boolean): Maybe[A] = if (f(a)) a.just else Empty()
+  def justIf(f: A => Boolean): Maybe[A] = if (f(a)) a.just else empty
 }
 
 case class File(path: FilePath, name: FileName, fileSize: Maybe[Long], fileType: FileType)

@@ -5,7 +5,7 @@ import sbt.Keys._
 
 object settings {
 
-  val http4sVersion = "0.18.0-M5"
+  val http4sVersion = "0.18.0-M6"
   val doobieVersion = "0.5.0-M9"
   val enumeratumVersion = "1.5.12"
   val tsecVersion = "0.0.1-M5"

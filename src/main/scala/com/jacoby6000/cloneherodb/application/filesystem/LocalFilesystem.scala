@@ -3,31 +3,36 @@ package com.jacoby6000.cloneherodb.application.filesystem
 import better.files.{File => SystemFile}
 import cats.effect.Effect
 import com.jacoby6000.cloneherodb.data._
+import com.jacoby6000.cloneherodb.logging.Logger
 import shims._
 
 import scalaz.Scalaz._
 import scalaz.{IList, _}
 
-class LocalFilesystem[F[_]](implicit F: Effect[F]) extends FileSystem[F] {
+class LocalFilesystem[F[_]](logger: Logger[F])(implicit F: Effect[F]) extends FileSystem[F] {
+  private def delay[A](a: => A): F[A] =
+    F.handleErrorWith(F.delay(a))(ex => logger.error(ex.getMessage).flatMap(_ => F.raiseError(ex)))
+
   def childrenOf(filePath: FilePath): F[IList[File]] =
-    F.delay {
-      SystemFile(filePath.javaPath)
-        .children
-        .toList
-        .toIList
-        .flatMap(systemFileToFile(_).toIList)
-    }
+    delay(
+        SystemFile(filePath.javaPath)
+          .children
+          .toList
+          .toIList
+          .flatMap(systemFileToFile(_).toIList)
+    )
 
-  def parentOf(filePath: FilePath): F[Maybe[File]] = F.delay {
-    Maybe.fromOption(SystemFile(filePath.javaPath).parentOption).flatMap(systemFileToFile)
-  }
+  def parentOf(filePath: FilePath): F[Maybe[File]] =
+     delay(Maybe.fromOption(SystemFile(filePath.javaPath).parentOption).flatMap(systemFileToFile))
 
-  def fileAt(filePath: FilePath): F[Maybe[File]] = F.delay {
+
+  def fileAt(filePath: FilePath): F[Maybe[File]] = delay {
     systemFileToFile(SystemFile(filePath.javaPath))
   }
 
-  def textContents(file: File): F[Maybe[String]] =
-    F.delay(SystemFile(file.path.javaPath).justIf(_.exists).map(_.contentAsString))
+  def textContents(file: File): F[Maybe[String]] = delay {
+    SystemFile(file.path.javaPath).justIf(_.exists).map(_.contentAsString)
+  }
 
   def systemFileToFile(file: SystemFile): Maybe[File] =
     file.justIf(_.exists).map { file =>

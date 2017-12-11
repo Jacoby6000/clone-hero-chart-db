@@ -1,8 +1,9 @@
 package com.jacoby6000.cloneherodb.data
 
 import java.nio.file.{Path, Paths}
-import scalaz._, Scalaz._
-import scalaz.Maybe.{Empty, Just}
+
+import scalaz.Scalaz._
+import scalaz._
 
 class FilePathStringContextOps(val s: StringContext) extends AnyVal {
   def path(args: String*): PathPart = PathPart(s.s(args: _*))
@@ -14,12 +15,6 @@ case class PathPart(value: String) extends AnyVal {
 
 object PathPart {
   implicit val pathPartEq: Equal[PathPart] = Equal.equalA
-}
-
-case class FileName(value: String) extends AnyVal
-
-object FileName {
-  implicit val fileNameEq: Equal[FileName] = Equal.equalA
 }
 
 class FilePathOps(val path: FilePath) extends AnyVal {
@@ -36,17 +31,16 @@ class FilePathOps(val path: FilePath) extends AnyVal {
 
   def /(subPath: FilePath): FilePath = path |+| subPath
 
-  def javaPath: Path = Paths.get(path.map(_.value).foldLeft(".")(_ + "/" + _))
+  def asString = path.tail.map(_.value).foldLeft(path.head.value)(_ + "/" + _)
+
+  def javaPath: Path = Paths.get(asString)
 
   def containsSub(otherPath: FilePath): Boolean = {
     val otherDequeue = otherPath.dequeue
 
     def go(p: Dequeue[PathPart]): Boolean = {
       if (p === otherDequeue) true
-      else p.uncons match {
-        case Just((_, unconsed)) => go(unconsed)
-        case Empty() => false
-      }
+      else p.uncons.cata({case (_, unconsed) => go(unconsed)}, false)
     }
 
     go(path.head +: path.tail)
