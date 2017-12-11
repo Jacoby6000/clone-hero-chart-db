@@ -1,5 +1,7 @@
 [![build-status](https://travis-ci.org/Jacoby6000/clone-hero-chart-db.svg?branch=master)](https://travis-ci.org/Jacoby6000/clone-hero-chart-db)
 # clone-hero-chart-db 
+
+[![Join the chat at https://gitter.im/clone-hero-chart-db/Lobby](https://badges.gitter.im/clone-hero-chart-db/Lobby.svg)](https://gitter.im/clone-hero-chart-db/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 System for indexing clone hero charts
 
 ## Contributing
