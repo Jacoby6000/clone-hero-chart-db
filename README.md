@@ -1,7 +1,7 @@
-[![build-status](https://travis-ci.org/Jacoby6000/clone-hero-chart-db.svg?branch=master)](https://travis-ci.org/Jacoby6000/clone-hero-chart-db)
+[![build-status](https://travis-ci.org/Jacoby6000/clone-hero-chart-db.svg?branch=master)](https://travis-ci.org/Jacoby6000/clone-hero-chart-db) [![Join the chat at https://gitter.im/Jacoby6000/clone-hero-chart-db](https://badges.gitter.im/Jacoby6000/clone-hero-chart-db.svg)](https://gitter.im/Jacoby6000/clone-hero-chart-db?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 # clone-hero-chart-db 
 
-[![Join the chat at https://gitter.im/Jacoby6000/clone-hero-chart-db](https://badges.gitter.im/Jacoby6000/clone-hero-chart-db.svg)](https://gitter.im/Jacoby6000/clone-hero-chart-db?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 System for indexing clone hero charts
 
 ## Contributing
