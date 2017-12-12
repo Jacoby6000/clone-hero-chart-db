@@ -1,4 +1,4 @@
-package com.jacoby6000.cloneherodb.application.filesystem
+package com.jacoby6000.cloneherodb.filesystem
 
 import better.files.{File => SystemFile}
 import cats.effect.Effect

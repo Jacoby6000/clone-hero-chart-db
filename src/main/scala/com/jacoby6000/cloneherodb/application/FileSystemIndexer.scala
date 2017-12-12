@@ -5,7 +5,7 @@ import java.time.Instant
 import java.util.UUID
 
 import com.jacoby6000.cloneherodb.application.FileSystemIndexer._
-import com.jacoby6000.cloneherodb.application.filesystem.FileSystem
+import com.jacoby6000.cloneherodb.filesystem.FileSystem
 import com.jacoby6000.cloneherodb.data._
 import com.jacoby6000.cloneherodb.database.DatabaseFiles
 import com.jacoby6000.cloneherodb.database.DatabaseFiles.{File => DatabaseFile}
@@ -62,14 +62,14 @@ trait FileSystemIndexer[F[_]] {
 }
 
 class FileSystemIndexerImpl[F[_], M[_], N[_]](
-                                     songDb: DatabaseFiles[M],
-                                     fileSystemProvider: ApiKey => FileSystem[N],
-                                     logger: Logger[F])(
-  mToF: M ~> F, nToF: N ~> F
-)(implicit
-    F: MonadError[F, IndexerError],
-    N: Monad[N],
-    M: Monad[M]
+  fileDb: DatabaseFiles[M],
+  fileSystemProvider: ApiKey => FileSystem[N],
+  logger: Logger[F] )(
+  mToF: M ~> F,
+  nToF: N ~> F)(implicit
+  F: MonadError[F, IndexerError],
+  N: Monad[N],
+  M: Monad[M]
 ) extends FileSystemIndexer[F] {
 
   def newIndex(apiKey: ApiKeyFor[File]): F[UUIDFor[File]] = {
@@ -81,14 +81,14 @@ class FileSystemIndexerImpl[F[_], M[_], N[_]](
 
       newIndexId = UUID.randomUUID().asEntityId[File]
       _ <- logger.verbose("New index root at " + keyPath.asString + " exists. Storing in db with id " + newIndexId.value.toString)
-      _ <- mToF(songDb.insertFile(newIndexId, fileToDatabaseFile(newIndexFile, empty, makePathToApiKeyFunc(apiKey.value))))
+      _ <- mToF(fileDb.insertFile(newIndexId, fileToDatabaseFile(newIndexFile, empty, makePathToApiKeyFunc(apiKey.value))))
       _ <- logger.verbose("Successfully stored new index root " + newIndexId)
     } yield newIndexId
   }
 
   def index(id: UUIDFor[File]): F[IList[DatabaseFile]] = {
     for {
-      dbFile <- maybeToF(songDb.getFile(id), mToF)(IndexTargetNotFoundInDatabase(id))
+      dbFile <- maybeToF(fileDb.getFile(id), mToF)(IndexTargetNotFoundInDatabase(id))
       fileSystem = fileSystemProvider(dbFile.apiKey.value)
       fileSystemTree <- maybeToF(fileTree(apiKeyToPath(dbFile.apiKey.value), empty, fileSystem), nToF)(IndexTargetNotFoundInFileSystem(dbFile.apiKey))
       _ <- logger.info(fileSystemTree)
@@ -143,10 +143,10 @@ class FileSystemIndexerImpl[F[_], M[_], N[_]](
     val fileId: UUIDFor[File] = UUID.randomUUID().asEntityId
 
     def saveDatabaseFile(file: DatabaseFile): M[(UUIDFor[File], DatabaseFile)] =
-      songDb.updateFileByApiKey(file).flatMap (
+      fileDb.updateFileByApiKey(file).flatMap (
         _.cata(
           M.point(_),
-          songDb.insertFile(fileId, file).map(_ => fileId -> file)
+          fileDb.insertFile(fileId, file).map(_ => fileId -> file)
         )
       )
 

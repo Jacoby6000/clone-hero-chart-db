@@ -2,7 +2,7 @@ package com.jacoby6000.cloneherodb.http
 
 import cats.effect.{Async, Effect, IO}
 import com.jacoby6000.cloneherodb.application.FileSystemIndexer.IndexerError
-import com.jacoby6000.cloneherodb.application.filesystem.{FileSystem, LocalFilesystem}
+import com.jacoby6000.cloneherodb.filesystem.{FileSystem, LocalFilesystem}
 import com.jacoby6000.cloneherodb.application.{FileSystemIndexer, FileSystemIndexerImpl}
 import com.jacoby6000.cloneherodb.config._
 import com.jacoby6000.cloneherodb.data._

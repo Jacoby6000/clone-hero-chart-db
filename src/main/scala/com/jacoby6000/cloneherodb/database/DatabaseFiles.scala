@@ -30,6 +30,8 @@ trait DatabaseFiles[F[_]] {
 
   def getFile(id: UUIDFor[DataFile]): F[Maybe[File]]
   def getFileByApiKey(apiKey: ApiKeyFor[DataFile]): F[Maybe[(UUIDFor[DataFile], File)]]
+  def getChildren(id: UUIDFor[DataFile]): F[IList[(UUIDFor[DataFile], File)]]
+
 
   def insertFile(id: UUIDFor[DataFile], file: File): F[Unit]
   def updateFile(id: UUIDFor[DataFile], file: File): F[Boolean]
@@ -47,6 +49,15 @@ class DoobieDatabaseFiles(logger: Logger[ConnectionIO]) extends DatabaseFiles[Co
     sql"""SELECT name, api_key, parent_id, file_type, last_indexed, first_indexed
           FROM files
           WHERE id = $id""".query[File]
+
+
+  def getChildren(id: UUIDFor[DataFile]): ConnectionIO[IList[(UUIDFor[DataFile], File)]] =
+    getChildrenQuery(id).iList
+
+  def getChildrenQuery(id: UUIDFor[DataFile]): Query0[(UUIDFor[DataFile], File)] =
+    sql"""SELECT id, name, api_key, parent_id, file_type, last_indexed, first_indexed
+          FROM files
+          WHERE parent_id = $id""".query[(UUIDFor[DataFile], File)]
 
   def insertFile(id: UUIDFor[DataFile], file: File): ConnectionIO[Unit] =
     insertFileQuery(id, file).run.map(_ => ())

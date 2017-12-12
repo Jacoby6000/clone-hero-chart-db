@@ -49,6 +49,7 @@ class FileDBTests extends FunSuite with Matchers with IOChecker {
   )
 
   test("DoobieDatabaseFiles.getFileQuery") { check(db.getFileQuery(uuid))}
+  test("DoobieDatabaseFiles.getChildrenQuery") { check(db.getChildrenQuery(uuid))}
   test("DoobieDatabaseFiles.getFileByApiKeyQuery") { check(db.getFileByApiKeyQuery(file.apiKey)) }
   test("DoobieDatabaseFiles.insertFileQuery") { check(db.insertFileQuery(uuid, file)) }
   test("DoobieDatabaseFiles.updateFileQuery") { check(db.updateFileQuery(uuid, file)) }

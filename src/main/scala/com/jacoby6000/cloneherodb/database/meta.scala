@@ -4,12 +4,13 @@ import com.jacoby6000.cloneherodb.data._
 import doobie._
 
 import scala.reflect.runtime.universe.TypeTag
-import scalaz._
+import scalaz._, Scalaz._
 
 object meta {
 
   implicit class QueryOps[A](query: Query0[A]) {
     def maybe: ConnectionIO[Maybe[A]] = query.option.map(Maybe.fromOption)
+    def iList: ConnectionIO[IList[A]] = query.list.map(_.toIList)
   }
 
   implicit def maybeComposite[A](implicit ev: Meta[A]): Composite[Maybe[A]] =
