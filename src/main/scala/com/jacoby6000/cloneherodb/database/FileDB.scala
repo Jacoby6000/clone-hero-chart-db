@@ -29,7 +29,11 @@ object Songs {
 
   case class Song(
     name: SongName,
-    directory: Maybe[UUIDFor[DataFile]],
+    artist: SongName,
+    album: SongName,
+    genre: SongName,
+    charter: SongName,
+    fileId: Maybe[UUIDFor[DataFile]],
     lastIndexed: Instant,
     firstIndexed: Instant
   )
