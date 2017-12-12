@@ -63,7 +63,7 @@ trait Indexer[F[_]] {
 
 class IndexerImpl[F[_], M[_], N[_]](
   songDb: DatabaseSongs[M],
-  fileSystem: FileSystem[N],
+  fileSystemProvider: ApiKey => FileSystem[N],
   logger: Logger[F])(
   mToF: M ~> F, nToF: N ~> F
 )(implicit
@@ -74,6 +74,7 @@ class IndexerImpl[F[_], M[_], N[_]](
 
   def newIndex(apiKey: ApiKeyFor[File]): F[UUIDFor[File]] = {
     val keyPath = apiKeyToPath(apiKey.value)
+    val fileSystem = fileSystemProvider(apiKey)
     for {
       _ <- logger.verbose("Checking if the new index root at " + keyPath.asString + " exists.")
       newIndexFile <- maybeToF(fileSystem.fileAt(keyPath), nToF)(IndexTargetNotFoundInFileSystem(apiKey))
@@ -88,7 +89,8 @@ class IndexerImpl[F[_], M[_], N[_]](
   def index(id: UUIDFor[File]): F[IList[DatabaseFile]] = {
     for {
       dbFile <- maybeToF(songDb.getFile(id), mToF)(IndexTargetNotFoundInDatabase(id))
-      fileSystemTree <- maybeToF(fileTree(apiKeyToPath(dbFile.apiKey.value), empty), nToF)(IndexTargetNotFoundInFileSystem(dbFile.apiKey))
+      fileSystem = fileSystemProvider(dbFile.apiKey.value)
+      fileSystemTree <- maybeToF(fileTree(apiKeyToPath(dbFile.apiKey.value), empty, fileSystem), nToF)(IndexTargetNotFoundInFileSystem(dbFile.apiKey))
       _ <- logger.info(fileSystemTree)
       storedTree <- mToF(storeTree(fileSystemTree, empty, makePathToApiKeyFunc(dbFile.apiKey.value)))
     } yield storedTree
@@ -113,13 +115,13 @@ class IndexerImpl[F[_], M[_], N[_]](
   def apiKeyToPath(key: ApiKey): FilePath =
     key.fold(k => filePath(PathPart(k)), k => filePath(Paths.get(k)))
 
-  def fileTree(start: FilePath, maxDepth: Maybe[Int]): N[Maybe[FileTree]] =
+  def fileTree(start: FilePath, maxDepth: Maybe[Int], fileSystem: FileSystem[N]): N[Maybe[FileTree]] =
     fileSystem.fileAt(start).flatMap(_.cata(
       file => file.fileType match {
         case FileType.Directory =>
           for {
             subFiles <- fileSystem.childrenOf(file.path)
-            trees <- subFiles.traverse(subFile => fileTree(subFile.path, maxDepth.map(_ - 1)))
+            trees <- subFiles.traverse(subFile => fileTree(subFile.path, maxDepth.map(_ - 1), fileSystem))
           } yield {
             Just(Node(file, trees.flatMap(_.toIList)))
           }
