@@ -30,7 +30,7 @@ Todo: database setup instructions
   * [doobie](http://tpolecat.github.io/doobie/): To provide database access in a sane manner.
   * [argonaut](http://argonaut.io): For functional json (de)serialization.
   * [tsec](https://github.com/jmcardon/tsec): For cryptography.
-  * [pureconfig](https://pureconfig.github.io/docs/): To provide functional config file parsing.
+  * [pureconfig](https://pureconfig.github.io/docs/): To provide semi-functional config file parsing.
   * [scalacheck](http://www.scalacheck.org/): For property based testing.
   * [flywaydb](https://flywaydb.org/): For convenient database migrations.
   * [enumeratum](https://github.com/lloydmeta/enumeratum): For sane scala enums.
@@ -61,7 +61,8 @@ This design philosophy is expanded upon in Tony Morris' (dibblego) talk about pa
 2014 ([video](https://www.youtube.com/watch?v=pVCkDZFSmVU&index=5&list=PLIpl4GKFQR6eXub6zaSren896Dfq4lUhs)/[slides](http://yowconference.com.au/slides/yowwest2014/Morris-ParametricityTypesDocumentationCodeReadability.pdf)), 
 and is talked about in [lihaoyi's blog](http://www.lihaoyi.com/post/StrategicScalaStylePracticalTypeSafety.html)
 
-Violating any of the above guidelines is a direct violation of the official [Code of Conduct](./Code%20Of%20Conduct.md)
+Failing to abide by any of the above guidelines is a direct violation of the official 
+[Code of Conduct](./Code%20Of%20Conduct.md)
 
 Having some knowledge of type classes and functional programming concepts will go a long way to make
 working with this code easier.  I highly recommend the 
