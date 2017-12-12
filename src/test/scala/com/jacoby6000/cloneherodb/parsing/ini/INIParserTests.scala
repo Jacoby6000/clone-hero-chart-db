@@ -84,6 +84,10 @@ class INIParserTests extends FunSpec with Matchers {
         ).failure
       }
 
+      it("Should fail with a duplicate section name."){
+        parse("[foo]\n[foo]") shouldEqual DuplicateSectionName(s("foo")).failureNel
+      }
+
       it("Should fail with a duplicate kv pair.") {
         parse("[foo]\nk=v\nk=y") shouldEqual DuplicateKey(s("foo"), k("k"), v("v"), v("y")).failureNel
       }
