@@ -74,7 +74,7 @@ class IndexerImpl[F[_], M[_], N[_]](
 
   def newIndex(apiKey: ApiKeyFor[File]): F[UUIDFor[File]] = {
     val keyPath = apiKeyToPath(apiKey.value)
-    val fileSystem = fileSystemProvider(apiKey)
+    val fileSystem = fileSystemProvider(apiKey.value)
     for {
       _ <- logger.verbose("Checking if the new index root at " + keyPath.asString + " exists.")
       newIndexFile <- maybeToF(fileSystem.fileAt(keyPath), nToF)(IndexTargetNotFoundInFileSystem(apiKey))
