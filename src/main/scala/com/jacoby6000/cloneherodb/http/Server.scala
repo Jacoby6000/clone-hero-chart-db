@@ -1,12 +1,12 @@
 package com.jacoby6000.cloneherodb.http
 
 import cats.effect.{Async, Effect, IO}
-import com.jacoby6000.cloneherodb.application.Indexer.IndexerError
+import com.jacoby6000.cloneherodb.application.FileSystemIndexer.IndexerError
 import com.jacoby6000.cloneherodb.application.filesystem.{FileSystem, LocalFilesystem}
-import com.jacoby6000.cloneherodb.application.{Indexer, IndexerImpl}
+import com.jacoby6000.cloneherodb.application.{FileSystemIndexer, FileSystemIndexerImpl}
 import com.jacoby6000.cloneherodb.config._
 import com.jacoby6000.cloneherodb.data._
-import com.jacoby6000.cloneherodb.database.DoobieDatabaseSongs
+import com.jacoby6000.cloneherodb.database.DoobieDatabaseFiles
 import com.jacoby6000.cloneherodb.http.services.IndexerService
 import com.jacoby6000.cloneherodb.logging.{LogLevel, StdOutLogger}
 import doobie._
@@ -57,7 +57,7 @@ abstract class AbstractServer[F[_]](implicit F: Effect[F]) extends StreamApp[F] 
     loadCloneHeroDbConfig((path"src" / path"main" / path"resources" / path"reference.conf").javaPath)
       .fold(fail, { conf =>
 
-        val dbSongs = new DoobieDatabaseSongs(doobieLogger)
+        val dbSongs = new DoobieDatabaseFiles(doobieLogger)
         val localFS = new LocalFilesystem[F](serviceLogger)
         // val googleDriveFS = ???
 
@@ -94,7 +94,7 @@ abstract class AbstractServer[F[_]](implicit F: Effect[F]) extends StreamApp[F] 
             conf.database.password.getOrElse("")
           )
 
-        val indexer: Indexer[G] = new IndexerImpl(dbSongs, fsProvider, indexerLogger)(transactor.trans.asScalaz, fToG)
+        val indexer: FileSystemIndexer[G] = new FileSystemIndexerImpl(dbSongs, fsProvider, indexerLogger)(transactor.trans.asScalaz, fToG)
 
         val service = new IndexerService[F, G](
           indexer,

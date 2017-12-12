@@ -3,7 +3,7 @@ package com.jacoby6000.cloneherodb.http.services
 import argonaut._
 import cats.effect.Effect
 import cats.implicits._
-import com.jacoby6000.cloneherodb.application.Indexer
+import com.jacoby6000.cloneherodb.application.FileSystemIndexer
 import com.jacoby6000.cloneherodb.data.{ApiKeyFor, File}
 import com.jacoby6000.cloneherodb.http.json.data.codecs._
 import com.jacoby6000.cloneherodb.http.services.IndexerService._
@@ -25,7 +25,7 @@ object IndexerService {
   }
 }
 
-class IndexerService[F[_] : Effect, G[_]](indexer: Indexer[G], nt: G ~> F, logger: Logger[F]) extends Http4sService[F] {
+class IndexerService[F[_] : Effect, G[_]](indexer: FileSystemIndexer[G], nt: G ~> F, logger: Logger[F]) extends Http4sService[F] {
 
   val IndexerRoot = Root / "indexer"
 

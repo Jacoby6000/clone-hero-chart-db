@@ -14,8 +14,7 @@ import shims._
 import scalaz.Scalaz._
 import scalaz._
 
-object Songs {
-
+object DatabaseFiles {
   case class File(
     name: FileName,
     apiKey: ApiKeyFor[DataFile],
@@ -24,24 +23,10 @@ object Songs {
     lastIndexed: Instant,
     firstIndexed: Instant
   )
-
-  case class Charter(name: String, username: String)
-
-  case class Song(
-    name: SongName,
-    artist: SongName,
-    album: SongName,
-    genre: SongName,
-    charter: SongName,
-    fileId: Maybe[UUIDFor[DataFile]],
-    lastIndexed: Instant,
-    firstIndexed: Instant
-  )
-
 }
 
-trait DatabaseSongs[F[_]] {
-  import Songs._
+trait DatabaseFiles[F[_]] {
+  import DatabaseFiles._
 
   def getFile(id: UUIDFor[DataFile]): F[Maybe[File]]
   def getFileByApiKey(apiKey: ApiKeyFor[DataFile]): F[Maybe[(UUIDFor[DataFile], File)]]
@@ -52,8 +37,8 @@ trait DatabaseSongs[F[_]] {
   def updateFileByApiKey(file: File): F[Maybe[(UUIDFor[DataFile], File)]]
 }
 
-class DoobieDatabaseSongs(logger: Logger[ConnectionIO]) extends DatabaseSongs[ConnectionIO] {
-  import Songs._
+class DoobieDatabaseFiles(logger: Logger[ConnectionIO]) extends DatabaseFiles[ConnectionIO] {
+  import DatabaseFiles._
 
   def getFile(id: UUIDFor[DataFile]): ConnectionIO[Maybe[File]] =
     getFileQuery(id).maybe

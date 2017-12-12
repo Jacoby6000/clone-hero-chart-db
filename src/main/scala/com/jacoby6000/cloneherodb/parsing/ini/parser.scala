@@ -53,7 +53,7 @@ object parser {
   case class DuplicateKey(section: Maybe[INISectionName], key: INIKey, existingValue: INIValue, newValue: INIValue) extends ParseError
   case class MalformedConfigLine(lineNumber: Int, contents: String, iniSectionName: Maybe[INISectionName]) extends ParseError
 
-  val alphaNumDash = CharIn(('a' to 'z') ++ ('A' to 'Z') ++ ('0' to '9') ++ List('-', '_'))
+  val alphaNumDash = CharIn(('a' to 'z') ++ ('A' to 'Z') ++ ('0' to '9') ++ List('-', '_', '.'))
 
   val section: P[INISectionName] = P("[" ~ alphaNumDash.rep.! ~ "]" ~ End).map(INISectionName(_))
   val key: P[INIKey] = P(Start ~ alphaNumDash.rep.!)map(INIKey(_))

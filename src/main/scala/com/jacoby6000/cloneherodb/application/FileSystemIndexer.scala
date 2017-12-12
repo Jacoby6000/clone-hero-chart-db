@@ -4,18 +4,18 @@ import java.nio.file.Paths
 import java.time.Instant
 import java.util.UUID
 
-import com.jacoby6000.cloneherodb.application.Indexer._
+import com.jacoby6000.cloneherodb.application.FileSystemIndexer._
 import com.jacoby6000.cloneherodb.application.filesystem.FileSystem
 import com.jacoby6000.cloneherodb.data._
-import com.jacoby6000.cloneherodb.database.DatabaseSongs
-import com.jacoby6000.cloneherodb.database.Songs.{File => DatabaseFile}
+import com.jacoby6000.cloneherodb.database.DatabaseFiles
+import com.jacoby6000.cloneherodb.database.DatabaseFiles.{File => DatabaseFile}
 import com.jacoby6000.cloneherodb.logging.Logger
 
 import scalaz.Maybe.Just
 import scalaz.Scalaz._
 import scalaz._
 
-object Indexer {
+object FileSystemIndexer {
   sealed trait IndexerError
   case class IndexTargetNotFoundInDatabase(id: UUIDFor[File]) extends IndexerError
   case class IndexTargetNotFoundInFileSystem(key: ApiKeyFor[File]) extends IndexerError
@@ -56,21 +56,21 @@ object Indexer {
 
 }
 
-trait Indexer[F[_]] {
+trait FileSystemIndexer[F[_]] {
   def newIndex(apiKey: ApiKeyFor[File]): F[UUIDFor[File]]
   def index(id: UUIDFor[File]): F[IList[DatabaseFile]]
 }
 
-class IndexerImpl[F[_], M[_], N[_]](
-  songDb: DatabaseSongs[M],
-  fileSystemProvider: ApiKey => FileSystem[N],
-  logger: Logger[F])(
+class FileSystemIndexerImpl[F[_], M[_], N[_]](
+                                     songDb: DatabaseFiles[M],
+                                     fileSystemProvider: ApiKey => FileSystem[N],
+                                     logger: Logger[F])(
   mToF: M ~> F, nToF: N ~> F
 )(implicit
     F: MonadError[F, IndexerError],
     N: Monad[N],
     M: Monad[M]
-) extends Indexer[F] {
+) extends FileSystemIndexer[F] {
 
   def newIndex(apiKey: ApiKeyFor[File]): F[UUIDFor[File]] = {
     val keyPath = apiKeyToPath(apiKey.value)

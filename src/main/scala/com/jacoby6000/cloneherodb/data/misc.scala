@@ -5,16 +5,23 @@ import enumeratum._
 import scalaz.Scalaz._
 import scalaz.{Enum => _, _}
 
+trait Song
+trait INIEntry
+
 case class SongName(value: String) extends AnyVal
 object SongName {
   implicit val songNameEqual: Equal[SongName] = Equal.equalA
 }
 
 case class FileName(value: String) extends AnyVal
-
 object FileName {
   implicit val fileNameEq: Equal[FileName] = Equal.equalA
 }
+
+case class Artist(value: String) extends AnyVal
+case class Album(value: String) extends AnyVal
+case class Genre(value: String) extends AnyVal
+case class Charter(value: String) extends AnyVal
 
 
 sealed trait ApiKey {

@@ -21,7 +21,7 @@ class FileDBTests extends FunSuite with Matchers with IOChecker {
       connection.unit
   }
 
-  val db = new DoobieDatabaseSongs(logger)
+  val db = new DoobieDatabaseFiles(logger)
 
   val conf =
     loadCloneHeroDbConfig((path"src" / path"it" /  path"resources" / path"reference.conf").javaPath)
@@ -39,7 +39,7 @@ class FileDBTests extends FunSuite with Matchers with IOChecker {
     )
 
   val uuid = UUID.randomUUID().asEntityId[File]
-  val file = com.jacoby6000.cloneherodb.database.Songs.File(
+  val file = com.jacoby6000.cloneherodb.database.DatabaseFiles.File(
     FileName("foo"),
     GoogleApiKey("bar").asEntityId,
     Empty(),
