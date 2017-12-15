@@ -33,6 +33,7 @@ class INIFileReader[F[_], M[_], N[_]](
   M: Monad[M]
 ) {
 
+  /*
   def parseRoot(uuid: UUIDFor[File]) =
     for {
       file <- maybeToF(fileDb.getFile(uuid), mToF)(FileRootNotFoundInDatabase(uuid).widen)
@@ -80,6 +81,6 @@ class INIFileReader[F[_], M[_], N[_]](
 
   def raiseAndLogError[A](err: INIFileReaderError): F[A] =
     logger.error(err.toString) *> F.raiseError[A](err)
-
+*/
 }
 

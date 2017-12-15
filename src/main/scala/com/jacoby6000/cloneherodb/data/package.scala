@@ -39,7 +39,10 @@ package object data {
   implicit def toFilePathStringContextOps(filePath: StringContext): FilePathStringContextOps =
     new FilePathStringContextOps(filePath)
 
-  implicit def allOps[A](a: A): AllOps[A] = new AllOps(a)
+  implicit def toMonadErrorOps[F[_], A](fa: F[A]): MoreMonadErrorOps[F, A] = new MoreMonadErrorOps(fa)
+
+  implicit def allOps[A](a: A): AllOps[A] =
+    new AllOps(a)
 
   implicit val dequeueMonad: MonadPlus[Dequeue] =
     new MonadPlus[Dequeue] {

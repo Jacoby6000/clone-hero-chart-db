@@ -30,7 +30,6 @@ sealed trait ApiKey {
       case GoogleApiKey(s) => googleApiKeyF(s)
       case LocalFSApiKey(s) => localFSApiKeyF(s)
     }
-
 }
 case class GoogleApiKey(key: String) extends ApiKey
 case class LocalFSApiKey(path: String) extends ApiKey

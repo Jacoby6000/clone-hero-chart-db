@@ -77,7 +77,10 @@ class FileSystemIndexerImpl[F[_], M[_], N[_]](
     val fileSystem = fileSystemProvider(apiKey.value)
     for {
       _ <- logger.verbose("Checking if the new index root at " + keyPath.asString + " exists.")
-      newIndexFile <- maybeToF(fileSystem.fileAt(keyPath), nToF)(IndexTargetNotFoundInFileSystem(apiKey))
+
+      newIndexFile <- fileSystem.fileAt(keyPath).liftEmpty(nToF) {
+        logger.error("shit") *> IndexTargetNotFoundInFileSystem(apiKey).pure[F]
+      }
 
       newIndexId = UUID.randomUUID().asEntityId[File]
       _ <- logger.verbose("New index root at " + keyPath.asString + " exists. Storing in db with id " + newIndexId.value.toString)
@@ -98,10 +101,6 @@ class FileSystemIndexerImpl[F[_], M[_], N[_]](
 
 
   def maybeToF[G[_], A](maybeA: => G[Maybe[A]], nt: G ~> F)(raiseError: => IndexerError): F[A] =
-    for {
-      maybeResult <- nt(maybeA)
-      result <- maybeResult.getOrElseF[F](raiseAndLogError[A](raiseError))
-    } yield result
 
   def validationToF[G[_], A, B](validationA: G[Validation[A, B]], nt: G ~> F)(raiseError: A => IndexerError): F[B] =
     for {

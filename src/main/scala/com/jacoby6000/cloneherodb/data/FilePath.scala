@@ -31,7 +31,7 @@ class FilePathOps(val path: FilePath) extends AnyVal {
 
   def /(subPath: FilePath): FilePath = path |+| subPath
 
-  def asString = path.tail.map(_.value).foldLeft(path.head.value)(_ + "/" + _)
+  def asString: String = path.tail.map(_.value).foldLeft(path.head.value)(_ + "/" + _)
 
   def javaPath: Path = Paths.get(asString)
 
