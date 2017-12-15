@@ -44,6 +44,8 @@ package object data {
   implicit def allOps[A](a: A): AllOps[A] =
     new AllOps(a)
 
+  implicit def showsStringContext(sc: StringContext): ShowInterpolator = new ShowInterpolator(sc)
+
   implicit val dequeueMonad: MonadPlus[Dequeue] =
     new MonadPlus[Dequeue] {
       override def point[A](a: => A): Dequeue[A] = Dequeue(a)
@@ -51,4 +53,8 @@ package object data {
       override def empty[A] = Dequeue.empty[A]
       override def plus[A](a: Dequeue[A], b: => Dequeue[A]) = a ++ b
     }
+
+  implicit def uuidShow: Show[UUID] = Show.show[UUID](uuid => s"{$uuid}")
+
+  implicit def filePathShow: Show[FilePath] = Show.show[FilePath](path => path.asString)
 }

@@ -60,6 +60,7 @@ object ApiKeyType extends Enum[ApiKeyType] {
 case class EntityId[A, +B](value: B) extends AnyVal
 object EntityId {
   implicit def entityIdEq[A, B]: Equal[EntityId[A, B]] = Equal.equalA
+  implicit def entityIdShow[A, B: Show]: Show[EntityId[A, B]] = Show.show(id => show"EntityId(${id.value})".toString)
 }
 
 

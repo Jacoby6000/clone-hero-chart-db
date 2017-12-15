@@ -6,19 +6,31 @@ import Scalaz._
 import scalaz.Liskov.<~<
 
 class MoreMonadErrorOps[F[_], A](val fa: F[A]) extends AnyVal {
-  def liftError[G[_], C, D, E](nt: F ~> G)(raiseErr: C => G[E])(implicit G: MonadError[G, E], ev: A <~< Validation[C, D]): G[D] =
+  def liftError[C, D, E](raiseErr: C => F[E])(implicit F: MonadError[F, E], ev: A <~< Validation[C, D]): F[D] =
     for {
-      a <- nt(fa)
+      a <- fa
       validation = ev(a)
 
-      result <- validation.fold(raiseErr(_).flatMap(G.raiseError[D]), G.pure(_))
+      result <- validation.fold(raiseErr(_).flatMap(F.raiseError[D]), F.pure(_))
     } yield result
 
-  def liftEmpty[G[_], C, E](nt: F ~> G)(raiseErr: => G[E])(implicit G: MonadError[G, E], ev: A <~< Maybe[C]): G[C] =
+  def liftEmpty[E](implicit FE: MonadError[F, E]): PartiallyAppliedLiftEmpty[F, A, E] =
+    new PartiallyAppliedLiftEmpty[F, A, E] {
+      override val fa: F[A] = fa
+      override val F: MonadError[F, E] = FE
+    }
+
+
+}
+
+trait PartiallyAppliedLiftEmpty[F[_], A, E] {
+  val fa: F[A]
+  implicit val F: MonadError[F, E]
+  def apply[B, X](raiseErr: => F[X])(implicit ev: A <~< Maybe[B], ev2: X <~< E): F[B] =
     for {
-      a <- nt(fa)
+      a <- fa
       maybe = ev(a)
 
-      result <- maybe.getOrElseF(raiseErr.flatMap(G.raiseError[C]))
+      result <- maybe.getOrElseF(raiseErr.flatMap(err => F.raiseError[B](ev2(err))))
     } yield result
 }

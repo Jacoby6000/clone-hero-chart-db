@@ -76,40 +76,34 @@ class FileSystemIndexerImpl[F[_], M[_], N[_]](
     val keyPath = apiKeyToPath(apiKey.value)
     val fileSystem = fileSystemProvider(apiKey.value)
     for {
-      _ <- logger.verbose("Checking if the new index root at " + keyPath.asString + " exists.")
+      _ <- logger.verbose(show"Checking if the new index root at $keyPath exists.")
 
-      newIndexFile <- fileSystem.fileAt(keyPath).liftEmpty(nToF) {
-        logger.error("shit") *> IndexTargetNotFoundInFileSystem(apiKey).pure[F]
+      newIndexFile <- nToF(fileSystem.fileAt(keyPath)).liftEmpty[IndexerError].apply {
+        logger.info(show"Failed to find index target $apiKey in fs.") *> IndexTargetNotFoundInFileSystem(apiKey).pure[F]
       }
 
       newIndexId = UUID.randomUUID().asEntityId[File]
-      _ <- logger.verbose("New index root at " + keyPath.asString + " exists. Storing in db with id " + newIndexId.value.toString)
-      _ <- mToF(fileDb.insertFile(newIndexId, fileToDatabaseFile(newIndexFile, empty, makePathToApiKeyFunc(apiKey.value))))
-      _ <- logger.verbose("Successfully stored new index root " + newIndexId)
+      _ <-
+        logger.verbose(show"New index root at $keyPath exists. Storing in db with id $newIndexId") *>
+        mToF(fileDb.insertFile(newIndexId, fileToDatabaseFile(newIndexFile, empty, makePathToApiKeyFunc(apiKey.value)))) <*
+        logger.verbose(show"Successfully stored new index root $newIndexId")
     } yield newIndexId
   }
 
   def index(id: UUIDFor[File]): F[IList[DatabaseFile]] = {
     for {
-      dbFile <- maybeToF(fileDb.getFile(id), mToF)(IndexTargetNotFoundInDatabase(id))
-      fileSystem = fileSystemProvider(dbFile.apiKey.value)
-      fileSystemTree <- maybeToF(fileTree(apiKeyToPath(dbFile.apiKey.value), empty, fileSystem), nToF)(IndexTargetNotFoundInFileSystem(dbFile.apiKey))
-      _ <- logger.info(fileSystemTree)
+      dbFile <- mToF(fileDb.getFile(id)).liftEmpty[IndexerError].apply {
+        logger.info(show"Failed to find index target $id in db.") *> IndexTargetNotFoundInDatabase(id).pure[F]
+      }
+      apiKey = dbFile.apiKey
+
+      fileSystem = fileSystemProvider(apiKey.value)
+      fileSystemTree <- nToF(fileTree(apiKeyToPath(apiKey.value), empty, fileSystem)).liftEmpty[IndexerError].apply {
+        logger.info(show"Failed to find index target $apiKey") *> IndexTargetNotFoundInFileSystem(apiKey).pure[F]
+      }
       storedTree <- mToF(storeTree(fileSystemTree, empty, makePathToApiKeyFunc(dbFile.apiKey.value)))
     } yield storedTree
   }
-
-
-  def maybeToF[G[_], A](maybeA: => G[Maybe[A]], nt: G ~> F)(raiseError: => IndexerError): F[A] =
-
-  def validationToF[G[_], A, B](validationA: G[Validation[A, B]], nt: G ~> F)(raiseError: A => IndexerError): F[B] =
-    for {
-      validationResult <- nt(validationA)
-      result <- validationResult.fold(err => raiseAndLogError(raiseError(err)), F.pure(_))
-    } yield result
-
-  def raiseAndLogError[A](err: IndexerError): F[A] =
-    logger.error(err.toString) *> F.raiseError[A](err)
 
   def apiKeyToPath(key: ApiKey): FilePath =
     key.fold(k => filePath(PathPart(k)), k => filePath(Paths.get(k)))

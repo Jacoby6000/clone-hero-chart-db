@@ -1,17 +1,18 @@
 package com.jacoby6000.cloneherodb.logging
 
+import com.jacoby6000.cloneherodb.data.Shows
 import com.jacoby6000.cloneherodb.logging.LogLevel.{Error, Info, Verbose, Warning}
 import enumeratum.values.{IntEnum, IntEnumEntry}
 
 import scalaz.{Order, Show}
 
 trait Logger[F[_]] {
-  def log[A: Show](a: A, level: LogLevel): F[Unit]
+  def log(a: Shows, level: LogLevel): F[Unit]
 
-  def error[A: Show](a: A): F[Unit] = log(a, Error)
-  def info[A: Show](a: A): F[Unit] = log(a, Info)
-  def verbose[A: Show](a: A): F[Unit] = log(a, Verbose)
-  def warning[A: Show](a: A): F[Unit] = log(a, Warning)
+  def error(a: Shows): F[Unit] = log(a, Error)
+  def info(a: Shows): F[Unit] = log(a, Info)
+  def verbose(a: Shows): F[Unit] = log(a, Verbose)
+  def warning(a: Shows): F[Unit] = log(a, Warning)
 }
 
 sealed abstract class LogLevel(val value: Int, val name: String) extends IntEnumEntry
