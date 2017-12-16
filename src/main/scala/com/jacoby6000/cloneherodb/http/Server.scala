@@ -104,7 +104,7 @@ abstract class AbstractServer[F[_]](implicit F: Effect[F]) extends StreamApp[F] 
 
 
         BlazeBuilder[F]
-          .bindHttp(8080, "localhost")
+          .bindHttp(conf.api.port, conf.api.bindTo)
           .mountService(service.service, "/api")
           .serve
       })

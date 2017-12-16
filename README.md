@@ -44,7 +44,7 @@ create a pull request to fix it.
 
 * No null values.
 * No exceptions.
-* No type casing. (`isInstanceOf`)
+* No type casing (`isInstanceOf`).  The one exception is pattern matching on ADTs.  Even this is a smell.
 * No type casting. (`asInstanceOf`)
 * **No side-effects.** _"but..."_ No. Not even then.
 * No using methods defined on `Any`. (`equals`, `toString`, `hashCode`)

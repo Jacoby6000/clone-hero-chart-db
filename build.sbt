@@ -4,14 +4,24 @@ import com.jacoby6000.cloneherodb.build.settings._
 import com.jacoby6000.cloneherodb.config._
 
 lazy val server = (project in file("."))
-  .dependsOn(config)
+  .dependsOn(config, macros)
   .configs(IntegrationTest)
   .settings(Defaults.itSettings)
   .settings(commonSettings)
   .settings(databaseSettings())
   .settings(
-    resolvers += "jmcardon at bintray" at "https://dl.bintray.com/jmcardon/tsec",
     libraryDependencies ++= rootProjectDependencies
+  )
+
+// Macros code blatantly stolen from davegurnell/smartypants.  I just needed to add a couple things.  Maybe will PR?
+lazy val macros = (project in file("macros"))
+  .settings(commonSettings)
+  .settings(
+    addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full),
+    scalacOptions --= Seq(
+      "-Ywarn-unused:implicits",
+      "-Ywarn-unused:patvars"
+    )
   )
 
 // configuration sub-project build located in <clone-hero-chart-db>/project/metabuild.sbt

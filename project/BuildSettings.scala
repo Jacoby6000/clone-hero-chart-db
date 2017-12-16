@@ -74,6 +74,8 @@ object settings {
     libraryDependencies ++= sanityDependencies,
 
     resolvers += Resolver.sonatypeRepo("releases"),
+    resolvers += "jmcardon at bintray" at "https://dl.bintray.com/jmcardon/tsec",
+
     addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.4"),
 
     scalacOptions ++= Seq(
