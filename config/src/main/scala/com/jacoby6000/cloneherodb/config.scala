@@ -3,7 +3,7 @@ package com.jacoby6000.cloneherodb
 import java.nio.file.Path
 
 import pureconfig._
-import pureconfig.error.ConfigReaderFailures
+import pureconfig.error.{ConfigReaderFailures, ConvertFailure}
 
 import scala.concurrent.duration.FiniteDuration
 import scalaz._
@@ -18,11 +18,11 @@ object config {
     ).disjunction
 
   def failuresToErrorMessage(configReaderFailures: ConfigReaderFailures): String =
-    configReaderFailures.toList.foldLeft("Failed to read configuration:\n") { (acc, err) =>
-      acc + "\t" + err.location.cata(
-        v => v.description,
-        "Config path unknown"
-      ) + ": " + err.description + "\n"
+    configReaderFailures.toList.map {
+      case err: ConvertFailure => err.path + ": " + err.description
+      case err => err.location.cata(v => v.description, "Config path unknown") + ": " + err.description
+    }.foldLeft("Failed to read configuration:\n") { (acc, err) =>
+      acc + "\t" + err + "\n"
     }
 
   case class CloneHeroDbConfiguration(
