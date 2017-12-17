@@ -2,6 +2,7 @@ package com.jacoby6000.cloneherodb.application
 
 import java.nio.file.Paths
 import java.time.Instant
+import java.util.UUID
 
 import com.jacoby6000.cloneherodb.application.INIFileReader._
 import com.jacoby6000.cloneherodb.data._
@@ -15,12 +16,16 @@ import com.jacoby6000.cloneherodb.parsing.ini.parser._
 
 import scalaz._
 import Scalaz._
+import scalaz.Maybe.{Empty, Just}
 
 object INIFileReader {
 
   sealed trait INIFileReaderError { def widen: INIFileReaderError = this }
   case class FileRootNotFoundInDatabase(uuid: UUIDFor[File]) extends INIFileReaderError
   case class FileRootNotFoundInFilesystem(uuid: ApiKeyFor[File]) extends INIFileReaderError
+  case class FailedToParseSongINI(uuid: UUIDFor[File], parseError: ParseError) extends INIFileReaderError
+  case class FileDoesNotExistInFilesystem(uuid: UUIDFor[File]) extends INIFileReaderError
+  case class FailedToSaveSong(cannotSaveSongError: CannotSaveSongError) extends INIFileReaderError
 
   sealed trait CannotSaveSongError { def widen: CannotSaveSongError = this }
   case class MissingSection(section: Maybe[INISectionName]) extends CannotSaveSongError
@@ -53,12 +58,13 @@ class INIFileReader[F[_], M[_], N[_]](
 
       iniFiles <- mToF(getINIFilePaths(uuid))
       parsed <- nToF(readINIFiles(maybeRootINIFile.toIList ::: iniFiles))
+      //insertSongResult <- mToF(songDb.insertSong))
     } yield iniFiles
 
   def getINIFilePaths(uuid: UUIDFor[File]): M[IList[FileIdentifierPair]] =
     fileDb.getChildren(uuid).flatMap(files => files.traverseM {
       case (id, DatabaseFile(_, _, _, FileType.Directory, _, _)) => getINIFilePaths(id)
-      case (id, file @ DatabaseFile(_, _, _, FileType.INI, _, _)) => M.pure(IList(makeFileIdentifierPair(id, file)))
+      case (id, file @ DatabaseFile(_, _, _, FileType.INI|FileType.Chart, _, _)) => M.pure(IList(makeFileIdentifierPair(id, file)))
       case _ => M.pure(IList())
     })
 
@@ -89,8 +95,17 @@ class INIFileReader[F[_], M[_], N[_]](
 
 
 
+  def handleParsedResults(results: IList[(UUIDFor[File], Maybe[ParseResult])]): IList[ValidationNel[INIFileReaderError, (UUIDFor[File], INIFile)]] =
+    results.map {
+      case (id, Empty()) => FileDoesNotExistInFilesystem(id).widen.failureNel
+      case (id, Just(Success(file))) => (id, file).successNel
+      case (id, Just(Failure(errs))) => errs.map(FailedToParseSongINI(id, _).widen).failure
+    }
 
-  def storeSongFromINIData(uuid: UUIDFor[File], ini: INIFile): ValidationNel[CannotSaveSongError, Song] = {
+  def saveSongs(data: IList[(UUIDFor[File], INIFile)]): M[] =
+    data.map((songFromINIData _).tupled).map(_.traverse(songDb.insertSong(UUID.randomUUID().asEntityId, _)))
+
+  def songFromINIData(uuid: UUIDFor[File], ini: INIFile): ValidationNel[CannotSaveSongError, Song] = {
     val songSection   = INISectionName("song").just
     val songNameKeys  = IList(INIKey("Name"), INIKey("name"))
     val artistKeys    = IList(INIKey("Artist"), INIKey("artist"))

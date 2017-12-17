@@ -36,5 +36,7 @@ trait DatabaseSongs[F[_]] {
   def getSongById(id: UUIDFor[DataSong]): F[Maybe[Song]]
   def getSongByFile(id: UUIDFor[File]): F[Maybe[Song]]
 
+  def updateSongByData(song: Song): F[Maybe[(UUIDFor[DataSong], Song)]]
+
   def insertSongINIEntry(id: UUIDFor[INIEntry], songINIEntry: SongINIEntry): F[Unit]
 }
