@@ -1,6 +1,6 @@
 package com.jacoby6000.cloneherodb.logging
 
-import com.jacoby6000.cloneherodb.data.Shows
+import com.jacoby6000.cloneherodb.syntax.Shows
 
 import scalaz.Monad
 import scalaz.{ISet, Show}

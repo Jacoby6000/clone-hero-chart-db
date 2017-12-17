@@ -3,6 +3,7 @@ package com.jacoby6000.cloneherodb.database
 import java.time.Instant
 
 import com.jacoby6000.cloneherodb.data.{File => DataFile, _}
+import com.jacoby6000.cloneherodb.syntax._
 import com.jacoby6000.cloneherodb.database.meta._
 import com.jacoby6000.cloneherodb.logging.Logger
 import doobie._
@@ -23,6 +24,9 @@ object DatabaseFiles {
     lastIndexed: Instant,
     firstIndexed: Instant
   )
+  object File {
+    implicit val databaseFileShow: Show[File] = Show.showFromToString
+  }
 }
 
 trait DatabaseFiles[F[_]] {
@@ -74,7 +78,7 @@ class DoobieDatabaseFiles(logger: Logger[ConnectionIO]) extends DatabaseFiles[Co
     )""".update
 
   def updateFile(id: UUIDFor[DataFile], file: File): ConnectionIO[Boolean] =
-    updateFileQuery(id, file).run.map(_ > 0) <* logger.info("Inserted " + file.toString)
+    updateFileQuery(id, file).run.map(_ > 0) <* logger.debug(show"Inserted $file")
 
   def updateFileQuery(id: UUIDFor[DataFile], file: File): Update0 =
     sql"""UPDATE files SET (name, api_key, parent_id, file_type, last_indexed) = (

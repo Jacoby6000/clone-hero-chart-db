@@ -1,11 +1,10 @@
-package com.jacoby6000.cloneherodb.data
+package com.jacoby6000.cloneherodb.syntax
 
-
-import scalaz._
-import Scalaz._
 import scalaz.Liskov.<~<
+import scalaz.Scalaz._
+import scalaz._
 
-class MoreMonadErrorOps[F[_], A](val fa: F[A]) extends AnyVal {
+class MoreMonadErrorOps[F[_], A](val fa: F[A]) extends AnyVal { self =>
   def liftError[C, D, E](raiseErr: C => F[E])(implicit F: MonadError[F, E], ev: A <~< Validation[C, D]): F[D] =
     for {
       a <- fa
@@ -16,7 +15,7 @@ class MoreMonadErrorOps[F[_], A](val fa: F[A]) extends AnyVal {
 
   def liftEmpty[E](implicit FE: MonadError[F, E]): PartiallyAppliedLiftEmpty[F, A, E] =
     new PartiallyAppliedLiftEmpty[F, A, E] {
-      override val fa: F[A] = fa
+      override val fa: F[A] = self.fa
       override val F: MonadError[F, E] = FE
     }
 

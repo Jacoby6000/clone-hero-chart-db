@@ -13,12 +13,11 @@ object parser {
       Order[String].contramap[INIKey](_.value)
   }
 
-  sealed trait INIValue { def widen: INIValue = this }
+  case class INIValue(value: String) { def widen: INIValue = this }
   object INIValue {
     implicit val iniValueSemigroup: Semigroup[INIValue] =
       Semigroup.instance[INIValue]((_, v) => v)
   }
-  case class INIString(value: String) extends INIValue
 
   case class INISectionName(value: String) extends AnyVal
   object INISectionName {
@@ -57,11 +56,13 @@ object parser {
 
   val section: P[INISectionName] = P("[" ~ alphaNumDash.rep.! ~ "]" ~ End).map(INISectionName(_))
   val key: P[INIKey] = P(Start ~ alphaNumDash.rep.!)map(INIKey(_))
-  val value: P[INIValue] = P(AnyChar.rep.! ~ End).map(INIString(_).widen)
+  val value: P[INIValue] = P(AnyChar.rep.! ~ End).map(INIValue(_).widen)
 
   val kvPair: P[INIKVPair] = P(key ~ "=" ~ value)
 
   val lineParser: P[INIKVPair \/ INISectionName] = P(kvPair.map(_.left) | section.map(_.right))
+
+  type ParseResult = ValidationNel[ParseError, INIFile]
 
   def parse(s: String): ValidationNel[ParseError, INIFile] = {
 

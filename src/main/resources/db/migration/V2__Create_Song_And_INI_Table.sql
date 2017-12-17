@@ -6,6 +6,7 @@ CREATE TABLE songs (
   artist        TEXT,
   album         TEXT,
   charter       TEXT,
+  year          TEXT,
   last_indexed  TIMESTAMP WITH TIME ZONE NOT NULL,
   first_indexed TIMESTAMP WITH TIME ZONE NOT NULL,
 
@@ -16,9 +17,10 @@ CREATE TABLE songs (
 CREATE INDEX genre_index ON songs (genre);
 CREATE INDEX artist_index ON songs (artist);
 CREATE INDEX charter_index ON songs (charter);
+CREATE INDEX year_index ON songs (year);
 CREATE INDEX name_index ON songs (name);
 
-CREATE TABLE song_ini_entries (
+CREATE TABLE song_data_entries (
   id            UUID PRIMARY KEY,
   song_id       UUID REFERENCES songs,
   section       TEXT,
@@ -30,4 +32,4 @@ CREATE TABLE song_ini_entries (
   CONSTRAINT song_id_section_key_unique_index UNIQUE (song_id, section, key)
 );
 
-CREATE INDEX section_key_index ON song_ini_entries (section, key);
+CREATE INDEX section_key_index ON song_data_entries (section, key);

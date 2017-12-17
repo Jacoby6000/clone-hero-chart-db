@@ -1,5 +1,6 @@
 package com.jacoby6000.cloneherodb.data
 
+import com.jacoby6000.cloneherodb.syntax._
 import enumeratum._
 
 import scalaz.Scalaz._
@@ -22,6 +23,7 @@ case class Artist(value: String) extends AnyVal
 case class Album(value: String) extends AnyVal
 case class Genre(value: String) extends AnyVal
 case class Charter(value: String) extends AnyVal
+case class Year(value: String) extends AnyVal
 
 
 sealed trait ApiKey {
@@ -61,13 +63,6 @@ case class EntityId[A, +B](value: B) extends AnyVal
 object EntityId {
   implicit def entityIdEq[A, B]: Equal[EntityId[A, B]] = Equal.equalA
   implicit def entityIdShow[A, B: Show]: Show[EntityId[A, B]] = Show.show(id => show"EntityId(${id.value})".toString)
-}
-
-
-class AllOps[A](val a: A) extends AnyVal {
-  def asEntityId[B]: EntityId[B, A] = EntityId(a)
-
-  def justIf(f: A => Boolean): Maybe[A] = if (f(a)) a.just else empty
 }
 
 case class File(path: FilePath, name: FileName, fileSize: Maybe[Long], fileType: FileType)

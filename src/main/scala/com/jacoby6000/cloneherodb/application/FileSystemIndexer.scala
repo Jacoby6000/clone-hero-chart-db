@@ -7,11 +7,12 @@ import java.util.UUID
 import com.jacoby6000.cloneherodb.application.FileSystemIndexer._
 import com.jacoby6000.cloneherodb.filesystem.FileSystem
 import com.jacoby6000.cloneherodb.data._
+import com.jacoby6000.cloneherodb.syntax._
 import com.jacoby6000.cloneherodb.database.DatabaseFiles
 import com.jacoby6000.cloneherodb.database.DatabaseFiles.{File => DatabaseFile}
 import com.jacoby6000.cloneherodb.logging.Logger
 
-import scalaz.Maybe.Just
+import scalaz.Maybe.{Empty, Just}
 import scalaz.Scalaz._
 import scalaz._
 
@@ -38,7 +39,7 @@ object FileSystemIndexer {
   sealed trait FileTree {
     def findByPath(path: FilePath): Maybe[FileTree] =
       this match {
-        case Leaf(file) => if (file.path === path) Just(this) else empty
+        case Leaf(file) => if (file.path === path) Just(this) else Empty()
         case Node(file, _) if file.path === path => Just(this)
         case Node(file, children) if file.path.containsSub(path) =>
           children.flatMap(_.findByPath(path).toIList).headMaybe
@@ -85,7 +86,7 @@ class FileSystemIndexerImpl[F[_], M[_], N[_]](
       newIndexId = UUID.randomUUID().asEntityId[File]
       _ <-
         logger.verbose(show"New index root at $keyPath exists. Storing in db with id $newIndexId") *>
-        mToF(fileDb.insertFile(newIndexId, fileToDatabaseFile(newIndexFile, empty, makePathToApiKeyFunc(apiKey.value)))) <*
+        mToF(fileDb.insertFile(newIndexId, fileToDatabaseFile(newIndexFile, Empty(), makePathToApiKeyFunc(apiKey.value)))) <*
         logger.verbose(show"Successfully stored new index root $newIndexId")
     } yield newIndexId
   }
@@ -98,10 +99,10 @@ class FileSystemIndexerImpl[F[_], M[_], N[_]](
       apiKey = dbFile.apiKey
 
       fileSystem = fileSystemProvider(apiKey.value)
-      fileSystemTree <- nToF(fileTree(apiKeyToPath(apiKey.value), empty, fileSystem)).liftEmpty[IndexerError].apply {
+      fileSystemTree <- nToF(fileTree(apiKeyToPath(apiKey.value), Empty(), fileSystem)).liftEmpty[IndexerError].apply {
         logger.info(show"Failed to find index target $apiKey") *> IndexTargetNotFoundInFileSystem(apiKey).pure[F]
       }
-      storedTree <- mToF(storeTree(fileSystemTree, empty, makePathToApiKeyFunc(dbFile.apiKey.value)))
+      storedTree <- mToF(storeTree(fileSystemTree, Empty(), makePathToApiKeyFunc(dbFile.apiKey.value)))
     } yield storedTree
   }
 
@@ -122,7 +123,7 @@ class FileSystemIndexerImpl[F[_], M[_], N[_]](
           N.point(Just(Leaf(file)))
 
       },
-      N.point(empty)
+      N.point(Empty())
     ))
 
   def makePathToApiKeyFunc(initialKey: ApiKey): FilePath => ApiKey =

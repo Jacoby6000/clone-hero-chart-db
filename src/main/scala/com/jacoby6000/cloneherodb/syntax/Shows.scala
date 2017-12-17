@@ -1,4 +1,4 @@
-package com.jacoby6000.cloneherodb.data
+package com.jacoby6000.cloneherodb.syntax
 
 import scalaz.Show
 

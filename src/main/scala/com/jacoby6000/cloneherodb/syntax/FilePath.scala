@@ -1,6 +1,8 @@
-package com.jacoby6000.cloneherodb.data
+package com.jacoby6000.cloneherodb.syntax
 
 import java.nio.file.{Path, Paths}
+
+import com.jacoby6000.cloneherodb.data.{FilePath, filePath}
 
 import scalaz.Scalaz._
 import scalaz._

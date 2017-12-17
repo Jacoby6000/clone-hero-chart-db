@@ -6,6 +6,7 @@ import com.jacoby6000.cloneherodb.filesystem.{FileSystem, LocalFilesystem}
 import com.jacoby6000.cloneherodb.application.{FileSystemIndexer, FileSystemIndexerImpl}
 import com.jacoby6000.cloneherodb.config._
 import com.jacoby6000.cloneherodb.data._
+import com.jacoby6000.cloneherodb.syntax._
 import com.jacoby6000.cloneherodb.database.DoobieDatabaseFiles
 import com.jacoby6000.cloneherodb.http.services.IndexerService
 import com.jacoby6000.cloneherodb.logging.{LogLevel, StdOutLogger}

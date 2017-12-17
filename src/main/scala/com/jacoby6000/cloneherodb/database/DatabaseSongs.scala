@@ -2,7 +2,7 @@ package com.jacoby6000.cloneherodb.database
 
 import java.time.Instant
 
-import com.jacoby6000.cloneherodb.data.{Album, Artist, Charter, File, Genre, INIEntry, SongName, UUIDFor, Song => DataSong}
+import com.jacoby6000.cloneherodb.data.{Album, Artist, Charter, File, Genre, INIEntry, SongName, UUIDFor, Year, Song => DataSong}
 import com.jacoby6000.cloneherodb.database.DatabaseSongs.{Song, SongINIEntry}
 import com.jacoby6000.cloneherodb.parsing.ini.parser.{INIKey, INISectionName, INIValue}
 
@@ -10,12 +10,13 @@ import scalaz.Maybe
 
 object DatabaseSongs {
   case class Song(
-    fileId: Maybe[UUIDFor[File]],
+    fileId: UUIDFor[File],
     name: SongName,
-    artist: Artist,
-    album: Album,
-    genre: Genre,
-    charter: Charter,
+    artist: Maybe[Artist],
+    album: Maybe[Album],
+    genre: Maybe[Genre],
+    charter: Maybe[Charter],
+    year: Maybe[Year],
     lastIndexed: Instant,
     firstIndexed: Instant
   )

@@ -5,6 +5,7 @@ import org.http4s.dsl.Http4sDsl
 import org.http4s.{EntityDecoder, EntityEncoder, HttpService}
 import org.http4s.argonaut._
 import com.jacoby6000.cloneherodb.data._
+import com.jacoby6000.cloneherodb.syntax._
 import java.util.UUID
 
 import argonaut.{DecodeJson, EncodeJson}
