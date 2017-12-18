@@ -2,22 +2,11 @@ package com.jacoby6000.cloneherodb.syntax
 
 import java.nio.file.{Path, Paths}
 
-import com.jacoby6000.cloneherodb.data.{FilePath, filePath}
+import com.jacoby6000.cloneherodb._
+import com.jacoby6000.cloneherodb.data.{FilePath, PathPart, filePath}
 
 import scalaz.Scalaz._
 import scalaz._
-
-class FilePathStringContextOps(val s: StringContext) extends AnyVal {
-  def path(args: String*): PathPart = PathPart(s.s(args: _*))
-}
-
-case class PathPart(value: String) extends AnyVal {
-  def /(pathPart: PathPart): FilePath = filePath(this, pathPart)
-}
-
-object PathPart {
-  implicit val pathPartEq: Equal[PathPart] = Equal.equalA
-}
 
 class FilePathOps(val path: FilePath) extends AnyVal {
   def beginning: PathPart = path.head

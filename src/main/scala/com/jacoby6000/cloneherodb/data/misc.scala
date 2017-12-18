@@ -88,3 +88,11 @@ object FileType extends Enum[FileType] {
 
   def values = findValues
 }
+
+case class PathPart(value: String) extends AnyVal {
+  def /(pathPart: PathPart): FilePath = filePath(this, pathPart)
+}
+
+object PathPart {
+  implicit val pathPartEq: Equal[PathPart] = Equal.equalA
+}

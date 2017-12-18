@@ -1,6 +1,7 @@
 package com.jacoby6000.cloneherodb.http
 
-import cats.effect.{Async, Effect, IO}
+import cats.effect.{Effect, IO}
+import com.jacoby6000.cloneherodb._
 import com.jacoby6000.cloneherodb.application.FileSystemIndexer.IndexerError
 import com.jacoby6000.cloneherodb.filesystem.{FileSystem, LocalFilesystem}
 import com.jacoby6000.cloneherodb.application.{FileSystemIndexer, FileSystemIndexerImpl}
@@ -18,7 +19,7 @@ import org.http4s.server.blaze._
 import pureconfig.error.ConfigReaderFailures
 import shims._
 
-import scalaz.{~>, _}
+import scalaz._
 import Scalaz._
 
 
@@ -29,32 +30,7 @@ abstract class AbstractServer[F[_]](implicit F: Effect[F]) extends StreamApp[F] 
   val indexerLogger = new StdOutLogger[G](Show[LogLevel], ISet.fromList(LogLevel.values.toList))
   val doobieLogger  = new StdOutLogger[ConnectionIO](Show[LogLevel], ISet.fromList(LogLevel.values.toList))
 
-  def eitherTAsync[M[_], E](implicit M: Async[M]): Async[EitherT[M, E, ?]] =
-    new Async[EitherT[M, E, ?]] {
-      override def async[A](k: (Either[Throwable, A] => Unit) => Unit): EitherT[M, E, A] =
-        EitherT.right(M.async(k))
-
-      override def suspend[A](thunk: => EitherT[M, E, A]): EitherT[M, E, A] =
-        EitherT.right(M.suspend(M.pure(thunk))).flatMap(identity)
-
-      override def flatMap[A, B](fa: EitherT[M, E, A])(f: A => EitherT[M, E, B]): EitherT[M, E, B] =
-        fa.flatMap(f)
-
-      override def tailRecM[A, B](a: A)(f: A => EitherT[M, E, Either[A, B]]): EitherT[M, E, B] =
-        BindRec[EitherT[M, E, ?]].tailrecM(f andThen (_.map(_.disjunction)))(a)
-
-      override def raiseError[A](e: Throwable): EitherT[M, E, A] =
-        EitherT.right(M.raiseError(e))
-
-      override def handleErrorWith[A](fa: EitherT[M, E, A])(f: Throwable => EitherT[M, E, A]): EitherT[M, E, A] =
-        EitherT.right(M.handleErrorWith(M.pure(fa))(f andThen M.pure)).flatMap(identity)
-
-      override def pure[A](x: A): EitherT[M, E, A] = EitherT.right(M.pure(x))
-    }
-
   override def stream(args: List[String], requestShutdown: F[Unit]): Stream[F, ExitCode] = {
-    implicit def eitherTAsyncImplicit[M[_]: Async, E]: Async[EitherT[M, E, ?]] = eitherTAsync
-
     loadCloneHeroDbConfig((path"src" / path"main" / path"resources" / path"reference.conf").javaPath)
       .fold(fail, { conf =>
 
