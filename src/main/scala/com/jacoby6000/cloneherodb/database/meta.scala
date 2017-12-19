@@ -4,15 +4,10 @@ import com.jacoby6000.cloneherodb.data._
 import doobie._
 
 import scala.reflect.runtime.universe.TypeTag
-import scalaz._, Scalaz._
+import scalaz._
+import shapeless._
 
 object meta {
-
-  implicit class QueryOps[A](query: Query0[A]) {
-    def maybe: ConnectionIO[Maybe[A]] = query.option.map(Maybe.fromOption)
-    def iList: ConnectionIO[IList[A]] = query.list.map(_.toIList)
-  }
-
   implicit def maybeComposite[A](implicit ev: Meta[A]): Composite[Maybe[A]] =
     Composite.fromMetaOption(ev).imap(Maybe.fromOption)(_.toOption)
 
@@ -20,16 +15,17 @@ object meta {
     * an issue to doobie so that we can make Param instances without cheating.
     */
   implicit def maybeParam[A](implicit ev: Meta[A]): Param[Maybe[A]] = {
-    val constructor = classOf[Param[Maybe[A]]].getConstructors.head
-    constructor.setAccessible(true)
-    constructor.newInstance(maybeComposite(ev)).asInstanceOf[Param[Maybe[A]]]
+    new Param[Maybe[A]](maybeComposite(ev))
   }
 
-  implicit val songNameMeta: Meta[SongName] =
-    Meta[String].xmap[SongName](SongName(_), _.value)
-
-  implicit def entityIdMeta[A, B: Meta](implicit tt: TypeTag[EntityId[A, B]]): Meta[EntityId[A, B]] =
-    Meta[B].xmap[EntityId[A, B]](EntityId(_), _.value)
+  implicit def valueClassImplicit[A <: AnyVal, L <: HList, S](
+    implicit ev: Generic.Aux[A, L],
+    toL: (S :: HNil) =:= L,
+    toS: L =:= (S :: HNil),
+    tt: TypeTag[A],
+    meta: Meta[S]
+  ): Meta[A] =
+    Meta[S].xmap[A](s => ev.from(toL(s :: HNil)), a => toS(ev.to(a)).head)
 
   implicit val fileTypeMeta: Meta[FileType] =
     Meta[String].xmap[FileType](
@@ -39,6 +35,21 @@ object meta {
         case other => other.entryName
       }
     )
+
+
+  private def valueClassMeta[A]: PartiallyAppliedValueClassMeta[A] = new PartiallyAppliedValueClassMeta[A]
+
+  // once scalaz deriving comes out we can make this better.
+  private class PartiallyAppliedValueClassMeta[A] {
+    def apply[L <: HList, S](
+      implicit ev: Generic.Aux[A, L],
+      toL: (S :: HNil) =:= L,
+      toS: L =:= (S :: HNil),
+      tt: TypeTag[A],
+      meta: Meta[S]
+    ): Meta[A] =
+      Meta[S].xmap[A](s => ev.from(toL(s :: HNil)), a => toS(ev.to(a)).head)
+  }
 
   implicit val apiKeyMeta: Meta[ApiKey] = {
     Meta[String].xmap(

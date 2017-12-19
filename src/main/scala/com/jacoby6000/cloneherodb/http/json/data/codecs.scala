@@ -33,4 +33,5 @@ trait DataCodecInstances {
 
   implicit def ilistCodec[A: CodecJson]: CodecJson[IList[A]] =
     CodecJson.derived[List[A]].xmap(_.toIList)(_.toList)
+
 }

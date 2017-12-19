@@ -5,6 +5,7 @@ import java.time.Instant
 import com.jacoby6000.cloneherodb.data.{File => DataFile, _}
 import com.jacoby6000.cloneherodb.syntax._
 import com.jacoby6000.cloneherodb.database.meta._
+import com.jacoby6000.cloneherodb.database.syntax._
 import com.jacoby6000.cloneherodb.logging.Logger
 import doobie._
 import doobie.implicits._
@@ -64,7 +65,7 @@ class DoobieDatabaseFiles(logger: Logger[ConnectionIO]) extends DatabaseFiles[Co
           WHERE parent_id = $id""".query[(UUIDFor[DataFile], File)]
 
   def insertFile(id: UUIDFor[DataFile], file: File): ConnectionIO[Unit] =
-    insertFileQuery(id, file).run.map(_ => ())
+    insertFileQuery(id, file).runUnit
 
   def insertFileQuery(id: UUIDFor[DataFile], file: File): Update0 =
     sql"""INSERT INTO files (id, name, api_key, parent_id, file_type, last_indexed, first_indexed) VALUES (
