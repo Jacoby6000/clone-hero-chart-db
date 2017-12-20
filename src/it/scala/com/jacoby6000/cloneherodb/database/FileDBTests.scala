@@ -11,13 +11,13 @@ import doobie._
 import doobie.free.connection
 import doobie.scalatest.IOChecker
 import org.scalatest.{FunSuite, Matchers}
+import com.jacoby6000.cloneherodb.syntax._
 
 import scalaz.Maybe.Empty
-import scalaz._
 
 class FileDBTests extends FunSuite with Matchers with IOChecker {
   val logger = new Logger[ConnectionIO] {
-    override def log[A: Show](a: A, level: LogLevel): ConnectionIO[Unit] =
+    override def log(a: Shows, level: LogLevel): ConnectionIO[Unit] =
       connection.unit
   }
 
@@ -25,7 +25,7 @@ class FileDBTests extends FunSuite with Matchers with IOChecker {
 
   val conf =
     loadCloneHeroDbConfig((path"src" / path"it" /  path"resources" / path"reference.conf").javaPath)
-      .fold(errs => sys.error(failuresToErrorMessage(errs)), identity)
+      .fold(errs => sys.error(failuresToErrorMessage(errs)), identity(_))
 
   val driver = "org.postgresql.Driver"
   val connectionString = s"jdbc:postgresql://${conf.database.host}:${conf.database.port}/${conf.database.databaseName}"

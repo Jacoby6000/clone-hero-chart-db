@@ -105,7 +105,7 @@ class DoobieDatabaseSongs extends DatabaseSongs[ConnectionIO] {
             charter,
             year,
             last_indexed
-          ) VALUES (
+          ) = (
             ${song.name},
             ${song.artist},
             ${song.album},
