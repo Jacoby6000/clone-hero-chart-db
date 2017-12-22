@@ -1,5 +1,7 @@
 package com.jacoby6000.cloneherodb.application
 
+import scala.Predef.Set
+
 import java.nio.file.Paths
 import java.time.Instant
 import java.util.UUID
@@ -66,7 +68,6 @@ class SongIndexerImpl[F[_], M[_], N[_]](
       iniFiles <- mToF(getINIFilePaths(uuid))
       parsed <- nToF(readINIFiles(maybeRootINIFile.toIList ::: iniFiles))
       handled = handleParsedResults(parsed)
-      _ <- logger.debug(handled.toString)
       saveSongsResult <- mToF(handled.traverse(saveSongs(_)).map(_.map(_.fold(_.failure, identity))))
     } yield saveSongsResult
 
@@ -88,7 +89,6 @@ class SongIndexerImpl[F[_], M[_], N[_]](
     for {
       maybeFile <- fs.fileAt(apiKeyToPath(key.value))
       textContents <- maybeFile.traverseM(fs.textContents(_))
-      _ = println(textContents)
     } yield textContents.map(parseINIFile)
   }
 

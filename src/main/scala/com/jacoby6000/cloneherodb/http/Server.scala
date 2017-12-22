@@ -1,5 +1,8 @@
 package com.jacoby6000.cloneherodb.http
 
+import scala.collection.immutable.List
+import java.lang.RuntimeException
+
 import cats.effect.{Effect, IO}
 import com.jacoby6000.cloneherodb._
 import com.jacoby6000.cloneherodb.application.FileSystemIndexer.FileIndexerError
@@ -40,11 +43,10 @@ abstract class AbstractServer[F[_]](implicit F: Effect[F]) extends StreamApp[F] 
         val dbFiles = new DoobieDatabaseFiles(doobieLogger)
         val dbSongs = new DoobieDatabaseSongs
         val localFS = new LocalFilesystem[F](serviceLogger)
-        // val googleDriveFS = ???
 
         val fsProvider: ApiKey => FileSystem[F] = {
           case LocalFSApiKey(_) => localFS
-          case GoogleApiKey(_) =>  ???
+          case GoogleApiKey(_) =>  scala.Predef.???
         }
 
         val gToF = new (G ~> F) {
@@ -108,7 +110,7 @@ abstract class AbstractServer[F[_]](implicit F: Effect[F]) extends StreamApp[F] 
   }
 
   def fail(err: ConfigReaderFailures): Stream[F, ExitCode] = {
-    println(failuresToErrorMessage(err))
+    scala.Predef.println(failuresToErrorMessage(err))
     Stream(ExitCode.Error)
       .covary[F]
   }

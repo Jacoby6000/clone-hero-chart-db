@@ -124,13 +124,16 @@ object settings {
 
       // Typelevel scala flags
       "-Yinduction-heuristics",       // speeds up the compilation of inductive implicit resolution
-      "-Ykind-polymorphism",          // type and method definitions with type parameters of arbitrary kinds
       "-Yliteral-types",              // literals can appear in type position
       "-Xstrict-patmat-analysis",     // more accurate reporting of failures of match exhaustivity
       "-Xlint:strict-unsealed-patmat" // warn on inexhaustive matches against unsealed traits
     ),
 
-    scalacOptions in (Compile, console) --= Seq("-Ywarn-unused:imports", "-Xfatal-warnings")
+    scalacOptions in (Compile, console) --= Seq("-Ywarn-unused:imports", "-Xfatal-warnings"),
+
+    // Shitty hack because updateSbtClassifiers breaks for typelevel.updateSbtClassifiers
+    scalaVersion      in updateSbtClassifiers := "2.12.4",
+    scalaOrganization in updateSbtClassifiers := "org.scala-lang"
   )
 
 }

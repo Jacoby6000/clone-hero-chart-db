@@ -4,7 +4,11 @@ import scalaz._
 import Scalaz._
 import fastparse.all._
 
+import scala.Predef.{Set, $conforms}
+import scala.collection.immutable.List
+
 import scalaz.Maybe.Empty
+
 
 object parser {
   case class INIKey(value: String) extends AnyVal
@@ -56,7 +60,7 @@ object parser {
 
   val ignoreChars = Set('"')
 
-  val ignore = P(CharsWhileIn(ignoreChars.toList ++ " ", 0))
+  val ignore = P(CharsWhileIn('_' :: ignoreChars.toList, 0))
 
   val section: P[INISectionName] = P("[" ~ alphaNumDash.! ~ "]" ~ End).map(INISectionName(_))
   val key: P[INIKey] = P(alphaNumDash.!)map(INIKey(_))
@@ -79,12 +83,10 @@ object parser {
           MalformedConfigLine(lineNumber + 1, line, currentSection).widen.failureNel[INIFile]
 
         lineParser.parse(line.trim).fold(
-          (_, _, err) =>  {
-            println(err)
-            (currentSection, parsed |+| handleParseError)} ,
+          (_, _, err) => (currentSection, parsed |+| handleParseError),
           (result, _) => result.fold(
             newPair =>
-              if (ISet.fromList("synctrack" :: "expertsingle" :: Nil).contains(currentSection.map(_.value).getOrElse("").toLowerCase))
+              if (ISet.fromList("synctrack" :: "expertsingle" :: scala.Nil).contains(currentSection.map(_.value).getOrElse("").toLowerCase))
                 (currentSection, parsed)
               else
               (currentSection, parsed.traverse(_.insertValue(currentSection, newPair)).fold(_.failure, identity)),

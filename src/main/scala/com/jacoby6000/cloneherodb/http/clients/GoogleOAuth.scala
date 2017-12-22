@@ -13,6 +13,7 @@ import org.http4s.{EntityDecoder, Header, Headers, Method, Request, Uri}
 import org.http4s.client.Client
 
 import scala.concurrent.duration._
+import scala.collection.immutable.List
 import tsec.signature.core.SigAlgoTag
 import tsec.signature.imports.{JCASignerPure, RSASignature, SHA256withRSA, SigPrivateKey, SignatureKeyError}
 import tsec.common._
