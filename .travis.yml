@@ -4,7 +4,7 @@ jdk:
   - oraclejdk8
 
 scala:
-  - 2.12.4
+  - 2.12.4-bin-typelevel-4
 
 script:
   - bash scripts/build.sh $TEST_SUITE $ACTION $AND
