@@ -46,7 +46,7 @@ class SongIndexerImpl[F[_], M[_], N[_]](
   songDb: DatabaseSongs[M],
   filesystemProvider: ApiKey => FileSystem[N],
   parseINIFile: String => ParseResult,
-  logger: Logger[F])(
+  logger: Logger)(
   mToF: M ~> F,
   nToF: N ~> F)(implicit
   F: MonadError[F, SongIndexerError],
@@ -66,7 +66,7 @@ class SongIndexerImpl[F[_], M[_], N[_]](
       iniFiles <- mToF(getINIFilePaths(uuid))
       parsed <- nToF(readINIFiles(maybeRootINIFile.toIList ::: iniFiles))
       handled = handleParsedResults(parsed)
-      _ <- logger.debug(handled.toString)
+      _ <- logger.debug[F](handled.toString)
       saveSongsResult <- mToF(handled.traverse(saveSongs(_)).map(_.map(_.fold(_.failure, identity))))
     } yield saveSongsResult
 

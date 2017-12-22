@@ -79,9 +79,7 @@ object parser {
           MalformedConfigLine(lineNumber + 1, line, currentSection).widen.failureNel[INIFile]
 
         lineParser.parse(line.trim).fold(
-          (_, _, err) =>  {
-            println(err)
-            (currentSection, parsed |+| handleParseError)} ,
+          (_, _, err) =>  (currentSection, parsed |+| handleParseError),
           (result, _) => result.fold(
             newPair =>
               if (ISet.fromList("synctrack" :: "expertsingle" :: Nil).contains(currentSection.map(_.value).getOrElse("").toLowerCase))

@@ -55,18 +55,18 @@ class IndexerService[F[_] : Effect, N[_], M[_]](
   songIndexer: SongIndexer[M],
   nToF: N ~> F,
   mToF: M ~> F,
-  logger: Logger[F]
+  logger: Logger
 ) extends Http4sService[F] {
 
   val IndexerRoot = Root / "index" / "roots"
 
   val service: Service = Service {
     case PUT -> IndexerRoot / UUIDForFileVar(uuid) =>
-      logger.verbose("Recieved re-index root request.")
+      logger.verbose[F]("Recieved re-index root request.") *>
       nToF(fileIndexer.index(uuid)).flatMap(files => Ok(files.map(_.apiKey.value)))
 
     case PUT -> IndexerRoot / UUIDForFileVar(uuid) / "songs" =>
-      logger.verbose("Recieved re-index root request.")
+      logger.verbose[F]("Recieved re-index root request.") *>
       mToF(songIndexer.indexSongsAtRoot(uuid))
         .flatMap { files =>
           val gatheredResults =
@@ -78,9 +78,9 @@ class IndexerService[F[_] : Effect, N[_], M[_]](
         }
 
     case req @ POST -> IndexerRoot =>
-      logger.verbose("Recieved new index root request.")
+      logger.verbose[F]("Recieved new index root request.") *>
       req.decode[NewFilesystemRoot] { root =>
-        logger.verbose("Successfully decoded new filesystem root: " + root.apiKey.value.show)
+        logger.verbose[F]("Successfully decoded new filesystem root: " + root.apiKey.value.show) *>
         nToF(fileIndexer.newIndex(root.apiKey)).map(ResourceIdResponse(_)).flatMap(Ok(_))
       }
   }
