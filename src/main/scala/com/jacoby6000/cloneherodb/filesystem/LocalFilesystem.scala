@@ -10,9 +10,11 @@ import shims._
 import scalaz.Scalaz._
 import scalaz.{IList, _}
 
-class LocalFilesystem[F[_]](logger: Logger[F])(implicit F: Effect[F]) extends FileSystem[F] {
+class LocalFilesystem[F[_]](val log: Logger)(implicit F: Effect[F]) extends FileSystem[F] {
+  val logger = log.forF[F]
+
   private def delay[A](a: => A): F[A] =
-    F.handleErrorWith(F.delay(a))(ex => logger.error(ex.getMessage).flatMap(_ => F.raiseError(ex)))
+    F.handleErrorWith(F.delay(a))(ex => logger.error(ex.getMessage) *> F.raiseError(ex))
 
   def childrenOf(filePath: FilePath): F[IList[File]] =
     delay(

@@ -65,7 +65,7 @@ trait FileSystemIndexer[F[_]] {
 class FileSystemIndexerImpl[F[_], M[_], N[_]](
   fileDb: DatabaseFiles[M],
   fileSystemProvider: ApiKey => FileSystem[N],
-  logger: Logger[F] )(
+  logger: Logger)(
   mToF: M ~> F,
   nToF: N ~> F)(implicit
   F: MonadError[F, FileIndexerError],
@@ -77,30 +77,30 @@ class FileSystemIndexerImpl[F[_], M[_], N[_]](
     val keyPath = apiKeyToPath(apiKey.value)
     val fileSystem = fileSystemProvider(apiKey.value)
     for {
-      _ <- logger.verbose(show"Checking if the new index root at $keyPath exists.")
+      _ <- logger.verbose[F](show"Checking if the new index root at $keyPath exists.")
 
       newIndexFile <- nToF(fileSystem.fileAt(keyPath)).liftEmpty[FileIndexerError].apply {
-        logger.info(show"Failed to find index target $apiKey in fs.") *> IndexTargetNotFoundInFileSystem(apiKey).pure[F]
+        logger.info[F](show"Failed to find index target $apiKey in fs.") *> IndexTargetNotFoundInFileSystem(apiKey).pure[F]
       }
 
       newIndexId = UUID.randomUUID().asEntityId[File]
       _ <-
-        logger.verbose(show"New index root at $keyPath exists. Storing in db with id $newIndexId") *>
+        logger.verbose[F](show"New index root at $keyPath exists. Storing in db with id $newIndexId") *>
         mToF(fileDb.insertFile(newIndexId, fileToDatabaseFile(newIndexFile, Empty(), makePathToApiKeyFunc(apiKey.value)))) <*
-        logger.verbose(show"Successfully stored new index root $newIndexId")
+        logger.verbose[F](show"Successfully stored new index root $newIndexId")
     } yield newIndexId
   }
 
   def index(id: UUIDFor[File]): F[IList[DatabaseFile]] = {
     for {
       dbFile <- mToF(fileDb.getFile(id)).liftEmpty[FileIndexerError].apply {
-        logger.info(show"Failed to find index target $id in db.") *> IndexTargetNotFoundInDatabase(id).pure[F]
+        logger.info[F](show"Failed to find index target $id in db.") *> IndexTargetNotFoundInDatabase(id).pure[F]
       }
       apiKey = dbFile.apiKey
 
       fileSystem = fileSystemProvider(apiKey.value)
       fileSystemTree <- nToF(fileTree(apiKeyToPath(apiKey.value), Empty(), fileSystem)).liftEmpty[FileIndexerError].apply {
-        logger.info(show"Failed to find index target $apiKey") *> IndexTargetNotFoundInFileSystem(apiKey).pure[F]
+        logger.info[F](show"Failed to find index target $apiKey") *> IndexTargetNotFoundInFileSystem(apiKey).pure[F]
       }
       storedTree <- mToF(storeTree(fileSystemTree, Empty(), makePathToApiKeyFunc(dbFile.apiKey.value)))
     } yield storedTree

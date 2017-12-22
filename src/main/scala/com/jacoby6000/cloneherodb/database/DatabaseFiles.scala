@@ -44,8 +44,10 @@ trait DatabaseFiles[F[_]] {
   def updateFileByApiKey(file: File): F[Maybe[(UUIDFor[DataFile], File)]]
 }
 
-class DoobieDatabaseFiles(logger: Logger[ConnectionIO]) extends DatabaseFiles[ConnectionIO] {
+class DoobieDatabaseFiles(val log: Logger) extends DatabaseFiles[ConnectionIO] {
   import DatabaseFiles._
+
+  val logger = log.forF[ConnectionIO]
 
   def getFile(id: UUIDFor[DataFile]): ConnectionIO[Maybe[File]] =
     getFileQuery(id).maybe
