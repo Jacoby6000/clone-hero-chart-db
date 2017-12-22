@@ -11,11 +11,11 @@ trait Logger { self =>
 
   def log[F[_]: Applicative](a: Shows, level: LogLevel): F[Unit]
 
-  def error[F[_]: Applicative](a: Shows): F[Unit] = log(a, Error)
-  def info[F[_]: Applicative](a: Shows): F[Unit] = log(a, Info)
-  def debug[F[_]: Applicative](a: Shows): F[Unit] = log(a, Debug)
-  def verbose[F[_]: Applicative](a: Shows): F[Unit] = log(a, Verbose)
-  def warning[F[_]: Applicative](a: Shows): F[Unit] = log(a, Warning)
+  def error[F[_]: Applicative](a: Shows): F[Unit] = log[F](a, Error)
+  def info[F[_]: Applicative](a: Shows): F[Unit] = log[F](a, Info)
+  def debug[F[_]: Applicative](a: Shows): F[Unit] = log[F](a, Debug)
+  def verbose[F[_]: Applicative](a: Shows): F[Unit] = log[F](a, Verbose)
+  def warning[F[_]: Applicative](a: Shows): F[Unit] = log[F](a, Warning)
 
   /**
     * Makes a logger with a concrete F.  See [[LoggerF]].
@@ -24,7 +24,7 @@ trait Logger { self =>
     */
   def forF[F[_]: Applicative]: LoggerF[F] = new LoggerF[F] {
     override def log(a: Shows, level: LogLevel): F[Unit] =
-      self.log(a, level)
+      self.log[F](a, level)
   }
 }
 
