@@ -52,35 +52,47 @@ object parser {
   case class DuplicateKey(section: Maybe[INISectionName], key: INIKey, existingValue: INIValue, newValue: INIValue) extends ParseError
   case class MalformedConfigLine(lineNumber: Int, contents: String, iniSectionName: Maybe[INISectionName]) extends ParseError
 
-  val alphaNumDash = CharIn(('a' to 'z') ++ ('A' to 'Z') ++ ('0' to '9') ++ List('-', '_', '.'))
+  val alphaNumDash = CharsWhileIn(('a' to 'z') ++ ('A' to 'Z') ++ ('0' to '9') ++ List('-', '_', '.'))
 
-  val section: P[INISectionName] = P("[" ~ alphaNumDash.rep.! ~ "]" ~ End).map(INISectionName(_))
-  val key: P[INIKey] = P(Start ~ alphaNumDash.rep.!)map(INIKey(_))
-  val value: P[INIValue] = P(AnyChar.rep.! ~ End).map(INIValue(_).widen)
+  val ignoreChars = Set('"')
 
-  val kvPair: P[INIKVPair] = P(key ~ "=" ~ value)
+  val ignore = P(CharsWhileIn(ignoreChars.toList ++ " ", 0))
 
-  val lineParser: P[INIKVPair \/ INISectionName] = P(kvPair.map(_.left) | section.map(_.right))
+  val section: P[INISectionName] = P("[" ~ alphaNumDash.! ~ "]" ~ End).map(INISectionName(_))
+  val key: P[INIKey] = P(alphaNumDash.!)map(INIKey(_))
+  val value: P[INIValue] = P(CharsWhile(x => !ignoreChars(x)).!).map(INIValue(_))
+
+  val kvPair: P[INIKVPair] = P(key ~ ignore ~ "=" ~ ignore ~ value)
+
+  val lineParser: P[INIKVPair \/ INISectionName] =
+    P(Start ~ ignore ~ (kvPair.map(_.left) | section.map(_.right)) ~ ignore ~ End)
 
   type ParseResult = ValidationNel[ParseError, INIFile]
 
   def parse(s: String): ValidationNel[ParseError, INIFile] = {
 
     s.lines.zipWithIndex.foldLeft((Maybe.empty[INISectionName], INIFile.empty.successNel[ParseError])) {
-      case (acc, (line, _)) if line.trim.isEmpty => acc
+      case (acc, (line, _)) if line.trim.isEmpty || line.startsWith(";") => acc
       case ((currentSection, parsed), (line, lineNumber)) =>
 
         def handleParseError: ValidationNel[ParseError, INIFile] =
           MalformedConfigLine(lineNumber + 1, line, currentSection).widen.failureNel[INIFile]
 
         lineParser.parse(line.trim).fold(
-          (_, _, _) => (currentSection, parsed |+| handleParseError),
+          (_, _, err) =>  {
+            println(err)
+            (currentSection, parsed |+| handleParseError)} ,
           (result, _) => result.fold(
-            newPair => (currentSection, parsed.traverse(_.insertValue(currentSection, newPair)).fold(_.failure, identity)),
+            newPair =>
+              if (ISet.fromList("synctrack" :: "expertsingle" :: Nil).contains(currentSection.map(_.value).getOrElse("").toLowerCase))
+                (currentSection, parsed)
+              else
+              (currentSection, parsed.traverse(_.insertValue(currentSection, newPair)).fold(_.failure, identity)),
             newSection => (newSection.just, parsed.traverse(_.insertNewSection(newSection.just)).fold(_.failure, identity))
           )
         )
     }._2
+
   }
 
 

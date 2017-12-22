@@ -37,6 +37,12 @@ class INIParserTests extends FunSpec with Matchers {
         ).successNel
       }
 
+      it("Should ignore trailing and preceding whitespace. and quotes") {
+        parse("[foo]\n \"  k \" =\"   bar foo\" \"  ") shouldEqual INIFile(
+          s("foo") -> IMap(k("k") -> v("bar foo").widen)
+        ).successNel
+      }
+
       it("Should properly parse an ini string with a section and multiple values.") {
         parse("[foo]\nk=v\nfoo=bar") shouldEqual INIFile(
           s("foo") -> IMap(k("k") -> v("v").widen, k("foo") -> v("bar"))

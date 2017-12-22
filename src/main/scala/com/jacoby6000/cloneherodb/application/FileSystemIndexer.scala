@@ -17,9 +17,9 @@ import scalaz.Scalaz._
 import scalaz._
 
 object FileSystemIndexer {
-  sealed trait IndexerError
-  case class IndexTargetNotFoundInDatabase(id: UUIDFor[File]) extends IndexerError
-  case class IndexTargetNotFoundInFileSystem(key: ApiKeyFor[File]) extends IndexerError
+  sealed trait FileIndexerError
+  case class IndexTargetNotFoundInDatabase(id: UUIDFor[File]) extends FileIndexerError
+  case class IndexTargetNotFoundInFileSystem(key: ApiKeyFor[File]) extends FileIndexerError
 
   object FileTree {
     implicit val fileTreeShow: Show[FileTree] =
@@ -68,7 +68,7 @@ class FileSystemIndexerImpl[F[_], M[_], N[_]](
   logger: Logger[F] )(
   mToF: M ~> F,
   nToF: N ~> F)(implicit
-  F: MonadError[F, IndexerError],
+  F: MonadError[F, FileIndexerError],
   N: Monad[N],
   M: Monad[M]
 ) extends FileSystemIndexer[F] {
@@ -79,7 +79,7 @@ class FileSystemIndexerImpl[F[_], M[_], N[_]](
     for {
       _ <- logger.verbose(show"Checking if the new index root at $keyPath exists.")
 
-      newIndexFile <- nToF(fileSystem.fileAt(keyPath)).liftEmpty[IndexerError].apply {
+      newIndexFile <- nToF(fileSystem.fileAt(keyPath)).liftEmpty[FileIndexerError].apply {
         logger.info(show"Failed to find index target $apiKey in fs.") *> IndexTargetNotFoundInFileSystem(apiKey).pure[F]
       }
 
@@ -93,13 +93,13 @@ class FileSystemIndexerImpl[F[_], M[_], N[_]](
 
   def index(id: UUIDFor[File]): F[IList[DatabaseFile]] = {
     for {
-      dbFile <- mToF(fileDb.getFile(id)).liftEmpty[IndexerError].apply {
+      dbFile <- mToF(fileDb.getFile(id)).liftEmpty[FileIndexerError].apply {
         logger.info(show"Failed to find index target $id in db.") *> IndexTargetNotFoundInDatabase(id).pure[F]
       }
       apiKey = dbFile.apiKey
 
       fileSystem = fileSystemProvider(apiKey.value)
-      fileSystemTree <- nToF(fileTree(apiKeyToPath(apiKey.value), Empty(), fileSystem)).liftEmpty[IndexerError].apply {
+      fileSystemTree <- nToF(fileTree(apiKeyToPath(apiKey.value), Empty(), fileSystem)).liftEmpty[FileIndexerError].apply {
         logger.info(show"Failed to find index target $apiKey") *> IndexTargetNotFoundInFileSystem(apiKey).pure[F]
       }
       storedTree <- mToF(storeTree(fileSystemTree, Empty(), makePathToApiKeyFunc(dbFile.apiKey.value)))

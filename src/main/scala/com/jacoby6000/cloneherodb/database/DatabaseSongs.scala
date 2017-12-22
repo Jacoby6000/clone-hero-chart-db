@@ -40,7 +40,7 @@ class DoobieDatabaseSongs extends DatabaseSongs[ConnectionIO] {
   override def insertSong(id: UUIDFor[DataSong], song: Song): ConnectionIO[Unit] =
     insertSongQuery(id, song).runUnit
 
-  def insertSongQuery(id: UUIDFor[DataSong], song: Song): Update0 =
+  def insertSongQuery(id: UUIDFor[DataSong], song: Song): Update0 = {
     sql"""INSERT INTO songs (id, file_id, name, genre, artist, album, charter, year, last_indexed, first_indexed) VALUES (
             $id,
             ${song.fileId},
@@ -54,6 +54,7 @@ class DoobieDatabaseSongs extends DatabaseSongs[ConnectionIO] {
             ${song.firstIndexed}
           )
        """.update
+  }
 
   override def getSongById(id: UUIDFor[DataSong]): ConnectionIO[Maybe[Song]] = getSongByIdQuery(id).maybe
 
@@ -91,10 +92,12 @@ class DoobieDatabaseSongs extends DatabaseSongs[ConnectionIO] {
         FROM
           songs
         WHERE
-          id = $id""".query[(UUIDFor[DataSong], Song)]
+          file_id = $id""".query[(UUIDFor[DataSong], Song)]
 
-  override def updateSongByData(song: Song) =
+  override def updateSongByData(song: Song): ConnectionIO[Maybe[(UUIDFor[DataSong], Song)]] = {
     updateSongByDataQuery(song).run *> getSongByFile(song.fileId)
+  }
+
 
   def updateSongByDataQuery(song: Song): Update0 =
     sql"""UPDATE songs SET (
@@ -114,6 +117,6 @@ class DoobieDatabaseSongs extends DatabaseSongs[ConnectionIO] {
             ${song.year},
             ${song.lastIndexed}
           ) WHERE
-        file_id = ${song.fileId}""".update
+            file_id = ${song.fileId}""".update
 
 }
