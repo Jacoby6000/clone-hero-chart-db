@@ -48,7 +48,7 @@ class SongIndexerImpl[F[_], M[_], N[_]](
   songDb: DatabaseSongs[M],
   filesystemProvider: ApiKey => FileSystem[N],
   parseINIFile: String => ParseResult,
-  logger: Logger[F])(
+  logger: Logger)(
   mToF: M ~> F,
   nToF: N ~> F)(implicit
   F: MonadError[F, SongIndexerError],

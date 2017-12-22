@@ -8,17 +8,18 @@ import com.jacoby6000.cloneherodb.config._
 import com.jacoby6000.cloneherodb.data._
 import com.jacoby6000.cloneherodb.logging.{LogLevel, Logger}
 import doobie._
-import doobie.free.connection
 import doobie.scalatest.IOChecker
 import org.scalatest.{FunSuite, Matchers}
 import com.jacoby6000.cloneherodb.syntax._
 
+import scalaz.Applicative
 import scalaz.Maybe.Empty
 
 class FileDBTests extends FunSuite with Matchers with IOChecker {
-  val logger = new Logger[ConnectionIO] {
-    override def log(a: Shows, level: LogLevel): ConnectionIO[Unit] =
-      connection.unit
+  val logger = new Logger {
+    override def log[F[_]](a: Shows, level: LogLevel)(implicit F: Applicative[F]): F[Unit] =
+      F.point(())
+
   }
 
   val db = new DoobieDatabaseFiles(logger)

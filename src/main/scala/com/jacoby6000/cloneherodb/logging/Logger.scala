@@ -4,9 +4,39 @@ import com.jacoby6000.cloneherodb.logging.LogLevel.{Debug, Error, Info, Verbose,
 import com.jacoby6000.cloneherodb.syntax.Shows
 import enumeratum.values.{IntEnum, IntEnumEntry}
 
-import scalaz.{Order, Show}
+import scalaz.{Applicative, Order, Show}
 
-trait Logger[F[_]] {
+trait Logger { self =>
+
+
+  def log[F[_]: Applicative](a: Shows, level: LogLevel): F[Unit]
+
+  def error[F[_]: Applicative](a: Shows): F[Unit] = log(a, Error)
+  def info[F[_]: Applicative](a: Shows): F[Unit] = log(a, Info)
+  def debug[F[_]: Applicative](a: Shows): F[Unit] = log(a, Debug)
+  def verbose[F[_]: Applicative](a: Shows): F[Unit] = log(a, Verbose)
+  def warning[F[_]: Applicative](a: Shows): F[Unit] = log(a, Warning)
+
+  /**
+    * Makes a logger with a concrete F.  See [[LoggerF]].
+    * @tparam F
+    * @return
+    */
+  def forF[F[_]: Applicative]: LoggerF[F] = new LoggerF[F] {
+    override def log(a: Shows, level: LogLevel): F[Unit] =
+      self.log(a, level)
+  }
+}
+
+/**
+  * A logger with a concrete F.  Useful for situations where you have a consistent mechanism for
+  * managing effects.
+  *
+  * Get one from [[Logger.forF]]
+  *
+  * @tparam F
+  */
+trait LoggerF[F[_]] {
   def log(a: Shows, level: LogLevel): F[Unit]
 
   def error(a: Shows): F[Unit] = log(a, Error)

@@ -31,49 +31,38 @@ abstract class AbstractServer[F[_]](implicit F: Effect[F]) extends StreamApp[F] 
   type G[A] = EitherT[F, FileIndexerError, A]
   type H[A] = EitherT[F, SongIndexerError, A]
 
-  val serviceLogger = new StdOutLogger[F](Show[LogLevel], ISet.fromList(LogLevel.values.toList))
-  val fileIndexerLogger = new StdOutLogger[G](Show[LogLevel], ISet.fromList(LogLevel.values.toList))
-  val songIndexerLogger = new StdOutLogger[H](Show[LogLevel], ISet.fromList(LogLevel.values.toList))
-  val doobieLogger  = new StdOutLogger[ConnectionIO](Show[LogLevel], ISet.fromList(LogLevel.values.toList))
+  val logger = new StdOutLogger(Show[LogLevel], ISet.fromList(LogLevel.values.toList))
 
   override def stream(args: List[String], requestShutdown: F[Unit]): Stream[F, ExitCode] = {
     loadCloneHeroDbConfig((path"src" / path"main" / path"resources" / path"reference.conf").javaPath)
       .fold(fail, { conf =>
 
-        val dbFiles = new DoobieDatabaseFiles(doobieLogger)
+        val dbFiles = new DoobieDatabaseFiles(logger)
         val dbSongs = new DoobieDatabaseSongs
-        val localFS = new LocalFilesystem[F](serviceLogger)
+        val localFS = new LocalFilesystem[F](logger)
+
 
         val fsProvider: ApiKey => FileSystem[F] = {
           case LocalFSApiKey(_) => localFS
           case GoogleApiKey(_) =>  scala.Predef.???
         }
 
-        val gToF = new (G ~> F) {
-          def apply[A](fa: G[A]): F[A] =
-            F.handleErrorWith(fa.run.map(_.valueOr(err => throw new RuntimeException(err.toString)))) { err =>
-              serviceLogger.error(err.getMessage) *>
-                serviceLogger.error(err.getStackTrace.mkString("\n")) *>
-                F.raiseError(err)
-            }
-        }
+        // TODO: Require an error handler as input
+        def fFromEitherT[E]: EitherT[F, E, ?] ~> F =
+          new (EitherT[F, E, ?] ~> F) {
+            def apply[A](fa: EitherT[F, E, A]): F[A] =
+              F.handleErrorWith(fa.run.map(_.valueOr(err => throw new RuntimeException(err.toString)))) { err =>
+                logger.error[F](err.getMessage) *>
+                  logger.error[F](err.getStackTrace.mkString("\n")) *>
+                  F.raiseError(err)
+              }
+          }
 
-        val hToF = new (H ~> F) {
-          def apply[A](fa: H[A]): F[A] =
-            F.handleErrorWith(fa.run.map(_.valueOr(err => throw new RuntimeException(err.toString)))) { err =>
-              serviceLogger.error(err.getMessage) *>
-                serviceLogger.error(err.getStackTrace.mkString("\n")) *>
-                F.raiseError(err)
-            }
-        }
 
-        def fToG: F ~> G = new (F ~> G) {
-          def apply[A](fa: F[A]): G[A] = EitherT.right(fa)
-        }
-
-        def fToH: F ~> H = new (F ~> H) {
-          def apply[A](fa: F[A]): H[A] = EitherT.right(fa)
-        }
+        def fToEitherT[E]: F ~> EitherT[F, E, ?] =
+          new (F ~> EitherT[F, E, ?]) {
+            override def apply[A](fa: F[A]) = EitherT.right(fa)
+          }
 
         def ident[M[_]] = new (M ~> M) {
           def apply[A](fa: M[A]): M[A] = fa
@@ -90,15 +79,15 @@ abstract class AbstractServer[F[_]](implicit F: Effect[F]) extends StreamApp[F] 
             conf.database.password.getOrElse("")
           )
 
-        val fileIndexer: FileSystemIndexer[G] = new FileSystemIndexerImpl(dbFiles, fsProvider, fileIndexerLogger)(transactor.trans.asScalaz andThen fToG, fToG)
-        val songIndexer: SongIndexer[H] = new SongIndexerImpl(dbFiles, dbSongs, fsProvider, com.jacoby6000.cloneherodb.parsing.chart.parser.parse(_), songIndexerLogger)(transactor.trans.asScalaz andThen fToH, fToH)
+        val fileIndexer: FileSystemIndexer[G] = new FileSystemIndexerImpl(dbFiles, fsProvider, logger)(transactor.trans.asScalaz andThen fToEitherT, fToEitherT)
+        val songIndexer: SongIndexer[H] = new SongIndexerImpl(dbFiles, dbSongs, fsProvider, com.jacoby6000.cloneherodb.parsing.chart.parser.parse(_), logger)(transactor.trans.asScalaz andThen fToEitherT, fToEitherT)
 
         val service = new IndexerService[F, G, H](
           fileIndexer,
           songIndexer,
-          gToF,
-          hToF,
-          serviceLogger
+          fFromEitherT,
+          fFromEitherT,
+          logger
         )
 
 
