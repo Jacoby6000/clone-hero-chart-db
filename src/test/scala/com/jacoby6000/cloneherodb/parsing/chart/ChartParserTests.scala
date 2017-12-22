@@ -8,6 +8,8 @@ import scalaz._
 import Scalaz._
 import scalaz.Maybe.Empty
 
+import scala.collection.immutable.List
+
 class INIParserTests extends FunSpec with Matchers {
 
   val k = INIKey.apply _
