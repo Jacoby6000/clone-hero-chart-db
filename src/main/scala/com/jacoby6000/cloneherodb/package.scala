@@ -6,6 +6,25 @@ import shims._
 import scalaz._, Scalaz._
 
 package object cloneherodb {
+
+
+  type Unit = scala.Unit
+  type String = scala.Predef.String
+  type AnyVal = scala.AnyVal
+  type Int = scala.Int
+  type Long = scala.Long
+  type Float = scala.Float
+  type Double = scala.Double
+  type Boolean = scala.Boolean
+  type =:=[A, B] = scala.Predef.=:=[A, B]
+  type StringContext = scala.StringContext
+
+  def implicitly[A](implicit a: A): A = a
+
+  implicit def stringOps(s: String) = scala.Predef.augmentString(s)
+  implicit def collectionOps = scala.Predef.=:=
+
+
   implicit val dequeueMonad: MonadPlus[Dequeue] =
     new MonadPlus[Dequeue] {
       override def point[A](a: => A): Dequeue[A] = Dequeue(a)

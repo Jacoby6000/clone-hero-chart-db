@@ -11,7 +11,11 @@ lazy val server = (project in file("."))
   .settings(commonSettings)
   .settings(databaseSettings())
   .settings(
-    libraryDependencies ++= rootProjectDependencies
+    libraryDependencies ++= rootProjectDependencies,
+    scalacOptions ++= Seq(
+      "-Ysysdef", "",
+      "-Ypredef", "com.jacoby6000.cloneherodb._"
+    )
   )
 
 // configuration sub-project build located in <clone-hero-chart-db>/project/metabuild.sbt
