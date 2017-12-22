@@ -5,12 +5,12 @@ import com.jacoby6000.cloneherodb.config._
 
 lazy val server = (project in file("."))
   .dependsOn(config)
+  .aggregate(config)
   .configs(IntegrationTest)
   .settings(Defaults.itSettings)
   .settings(commonSettings)
   .settings(databaseSettings())
   .settings(
-    resolvers += "jmcardon at bintray" at "https://dl.bintray.com/jmcardon/tsec",
     libraryDependencies ++= rootProjectDependencies
   )
 

@@ -1,9 +1,13 @@
 package com.jacoby6000.cloneherodb.data
 
+import com.jacoby6000.cloneherodb.syntax._
 import enumeratum._
 
 import scalaz.Scalaz._
 import scalaz.{Enum => _, _}
+
+trait Song
+trait INIEntry
 
 case class SongName(value: String) extends AnyVal
 object SongName {
@@ -11,10 +15,15 @@ object SongName {
 }
 
 case class FileName(value: String) extends AnyVal
-
 object FileName {
   implicit val fileNameEq: Equal[FileName] = Equal.equalA
 }
+
+case class Artist(value: String) extends AnyVal
+case class Album(value: String) extends AnyVal
+case class Genre(value: String) extends AnyVal
+case class Charter(value: String) extends AnyVal
+case class Year(value: String) extends AnyVal
 
 
 sealed trait ApiKey {
@@ -23,7 +32,6 @@ sealed trait ApiKey {
       case GoogleApiKey(s) => googleApiKeyF(s)
       case LocalFSApiKey(s) => localFSApiKeyF(s)
     }
-
 }
 case class GoogleApiKey(key: String) extends ApiKey
 case class LocalFSApiKey(path: String) extends ApiKey
@@ -54,13 +62,7 @@ object ApiKeyType extends Enum[ApiKeyType] {
 case class EntityId[A, +B](value: B) extends AnyVal
 object EntityId {
   implicit def entityIdEq[A, B]: Equal[EntityId[A, B]] = Equal.equalA
-}
-
-
-class AllOps[A](val a: A) extends AnyVal {
-  def asEntityId[B]: EntityId[B, A] = EntityId(a)
-
-  def justIf(f: A => Boolean): Maybe[A] = if (f(a)) a.just else empty
+  implicit def entityIdShow[A, B: Show]: Show[EntityId[A, B]] = Show.show(id => show"EntityId(${id.value})".toString)
 }
 
 case class File(path: FilePath, name: FileName, fileSize: Maybe[Long], fileType: FileType)
@@ -85,4 +87,12 @@ object FileType extends Enum[FileType] {
   case class Unknown(fileType: String) extends FileType
 
   def values = findValues
+}
+
+case class PathPart(value: String) extends AnyVal {
+  def /(pathPart: PathPart): FilePath = filePath(this, pathPart)
+}
+
+object PathPart {
+  implicit val pathPartEq: Equal[PathPart] = Equal.equalA
 }

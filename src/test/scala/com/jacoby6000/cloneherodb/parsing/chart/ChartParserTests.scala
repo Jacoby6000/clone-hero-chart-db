@@ -1,5 +1,6 @@
-package com.jacoby6000.cloneherodb.parsing.ini
+package com.jacoby6000.cloneherodb.parsing.chart
 
+import com.jacoby6000.cloneherodb.parsing.ini.parser.{DuplicateKey, DuplicateSectionName, INIFile, INIKey, INISectionName, INIValue, MalformedConfigLine}
 import org.scalatest._
 import parser._
 
@@ -13,50 +14,44 @@ class INIParserTests extends FunSpec with Matchers {
   val v = (INIValue.apply _) andThen (_.widen)
   val s = (INISectionName.apply _) andThen (_.just)
 
-  describe("The ini parser") {
+  describe("The chart parser") {
     describe("Passing cases") {
-      it("Should properly parse an empty ini string.") {
+      it("Should properly parse an empty chart string.") {
         parse("") shouldEqual INIFile.empty.successNel
       }
 
-      it("Should properly parse an ini string with only whitespaces.") {
-        parse("   \n  \t \n   \n  \t \r\n  ") shouldEqual INIFile.empty.successNel
+      it("Should properly parse an chart string with only whitespaces.") {
+        parse("   \n } \t \n  { \n  \t \r\n  ") shouldEqual INIFile.empty.successNel
       }
 
-      it("Should properly parse an ini string with an empty section.") {
+      it("Should properly parse an chart string with an empty section.") {
         parse("[foo]") shouldEqual INIFile(s("foo") -> IMap.empty).successNel
       }
 
-      it("Should properly parse an ini string with a value and no section.") {
+      it("Should properly parse an chart string with a value and no section.") {
         parse("k=v") shouldEqual INIFile(Empty() -> IMap(k("k") -> v("v").widen)).successNel
       }
 
-      it("Should properly parse an ini string with a section and a value.") {
-        parse("[foo]\nk=v") shouldEqual INIFile(
+      it("Should properly parse an chart string with a section and a value.") {
+        parse("[foo]\n{\n\tk=v\n}") shouldEqual INIFile(
           s("foo") -> IMap(k("k") -> v("v").widen)
         ).successNel
       }
 
-      it("Should ignore trailing and preceding whitespace. and quotes") {
-        parse("[foo]\n \"  k \" =\"   bar foo\" \"  ") shouldEqual INIFile(
-          s("foo") -> IMap(k("k") -> v("bar foo").widen)
-        ).successNel
-      }
-
-      it("Should properly parse an ini string with a section and multiple values.") {
-        parse("[foo]\nk=v\nfoo=bar") shouldEqual INIFile(
+      it("Should properly parse an chart string with a section and multiple values.") {
+        parse("[foo]\n{\n\tk=v\n\tfoo=bar\n}") shouldEqual INIFile(
           s("foo") -> IMap(k("k") -> v("v").widen, k("foo") -> v("bar"))
         ).successNel
       }
 
-      it("Should properly parse an ini string with a section and multiple values, and a trailing empty INI section.") {
+      it("Should properly parse an chart string with a section and multiple values, and a trailing empty INI section.") {
         parse("[foo]\nk=v\nfoo=bar\n[baz]") shouldEqual INIFile(
           s("baz") -> IMap.empty,
           s("foo") -> IMap(k("k") -> v("v").widen, k("foo") -> v("bar"))
         ).successNel
       }
 
-      it("Should properly parse an ini string with a section and multiple values, and values before the section.") {
+      it("Should properly parse an chart string with a section and multiple values, and values before the section.") {
         parse("x=y\n[foo]\nk=v\nfoo=bar\n[baz]") shouldEqual INIFile(
           Empty() -> IMap(k("x") -> v("y").widen),
           s("baz") -> IMap.empty,
@@ -100,3 +95,4 @@ class INIParserTests extends FunSpec with Matchers {
     }
   }
 }
+

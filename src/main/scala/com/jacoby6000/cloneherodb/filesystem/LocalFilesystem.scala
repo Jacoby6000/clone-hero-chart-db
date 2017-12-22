@@ -1,8 +1,9 @@
-package com.jacoby6000.cloneherodb.application.filesystem
+package com.jacoby6000.cloneherodb.filesystem
 
 import better.files.{File => SystemFile}
 import cats.effect.Effect
 import com.jacoby6000.cloneherodb.data._
+import com.jacoby6000.cloneherodb.syntax._
 import com.jacoby6000.cloneherodb.logging.Logger
 import shims._
 

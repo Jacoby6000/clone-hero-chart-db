@@ -3,7 +3,9 @@ package com.jacoby6000.cloneherodb.database
 import java.time.Instant
 
 import com.jacoby6000.cloneherodb.data.{File => DataFile, _}
+import com.jacoby6000.cloneherodb.syntax._
 import com.jacoby6000.cloneherodb.database.meta._
+import com.jacoby6000.cloneherodb.database.syntax._
 import com.jacoby6000.cloneherodb.logging.Logger
 import doobie._
 import doobie.implicits._
@@ -14,8 +16,7 @@ import shims._
 import scalaz.Scalaz._
 import scalaz._
 
-object Songs {
-
+object DatabaseFiles {
   case class File(
     name: FileName,
     apiKey: ApiKeyFor[DataFile],
@@ -24,27 +25,18 @@ object Songs {
     lastIndexed: Instant,
     firstIndexed: Instant
   )
-
-  case class Charter(name: String, username: String)
-
-  case class Song(
-    name: SongName,
-    artist: SongName,
-    album: SongName,
-    genre: SongName,
-    charter: SongName,
-    fileId: Maybe[UUIDFor[DataFile]],
-    lastIndexed: Instant,
-    firstIndexed: Instant
-  )
-
+  object File {
+    implicit val databaseFileShow: Show[File] = Show.showFromToString
+  }
 }
 
-trait DatabaseSongs[F[_]] {
-  import Songs._
+trait DatabaseFiles[F[_]] {
+  import DatabaseFiles._
 
   def getFile(id: UUIDFor[DataFile]): F[Maybe[File]]
   def getFileByApiKey(apiKey: ApiKeyFor[DataFile]): F[Maybe[(UUIDFor[DataFile], File)]]
+  def getChildren(id: UUIDFor[DataFile]): F[IList[(UUIDFor[DataFile], File)]]
+
 
   def insertFile(id: UUIDFor[DataFile], file: File): F[Unit]
   def updateFile(id: UUIDFor[DataFile], file: File): F[Boolean]
@@ -52,8 +44,8 @@ trait DatabaseSongs[F[_]] {
   def updateFileByApiKey(file: File): F[Maybe[(UUIDFor[DataFile], File)]]
 }
 
-class DoobieDatabaseSongs(logger: Logger[ConnectionIO]) extends DatabaseSongs[ConnectionIO] {
-  import Songs._
+class DoobieDatabaseFiles(logger: Logger[ConnectionIO]) extends DatabaseFiles[ConnectionIO] {
+  import DatabaseFiles._
 
   def getFile(id: UUIDFor[DataFile]): ConnectionIO[Maybe[File]] =
     getFileQuery(id).maybe
@@ -63,8 +55,17 @@ class DoobieDatabaseSongs(logger: Logger[ConnectionIO]) extends DatabaseSongs[Co
           FROM files
           WHERE id = $id""".query[File]
 
+
+  def getChildren(id: UUIDFor[DataFile]): ConnectionIO[IList[(UUIDFor[DataFile], File)]] =
+    getChildrenQuery(id).iList
+
+  def getChildrenQuery(id: UUIDFor[DataFile]): Query0[(UUIDFor[DataFile], File)] =
+    sql"""SELECT id, name, api_key, parent_id, file_type, last_indexed, first_indexed
+          FROM files
+          WHERE parent_id = $id""".query[(UUIDFor[DataFile], File)]
+
   def insertFile(id: UUIDFor[DataFile], file: File): ConnectionIO[Unit] =
-    insertFileQuery(id, file).run.map(_ => ())
+    insertFileQuery(id, file).runUnit
 
   def insertFileQuery(id: UUIDFor[DataFile], file: File): Update0 =
     sql"""INSERT INTO files (id, name, api_key, parent_id, file_type, last_indexed, first_indexed) VALUES (
@@ -78,7 +79,7 @@ class DoobieDatabaseSongs(logger: Logger[ConnectionIO]) extends DatabaseSongs[Co
     )""".update
 
   def updateFile(id: UUIDFor[DataFile], file: File): ConnectionIO[Boolean] =
-    updateFileQuery(id, file).run.map(_ > 0) <* logger.info("Inserted " + file.toString)
+    updateFileQuery(id, file).run.map(_ > 0) <* logger.debug(show"Inserted $file")
 
   def updateFileQuery(id: UUIDFor[DataFile], file: File): Update0 =
     sql"""UPDATE files SET (name, api_key, parent_id, file_type, last_indexed) = (

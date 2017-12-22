@@ -4,21 +4,22 @@ import java.nio.file.Paths
 import java.time.Instant
 import java.util.UUID
 
-import com.jacoby6000.cloneherodb.application.Indexer._
-import com.jacoby6000.cloneherodb.application.filesystem.FileSystem
+import com.jacoby6000.cloneherodb.application.FileSystemIndexer._
+import com.jacoby6000.cloneherodb.filesystem.FileSystem
 import com.jacoby6000.cloneherodb.data._
-import com.jacoby6000.cloneherodb.database.DatabaseSongs
-import com.jacoby6000.cloneherodb.database.Songs.{File => DatabaseFile}
+import com.jacoby6000.cloneherodb.syntax._
+import com.jacoby6000.cloneherodb.database.DatabaseFiles
+import com.jacoby6000.cloneherodb.database.DatabaseFiles.{File => DatabaseFile}
 import com.jacoby6000.cloneherodb.logging.Logger
 
-import scalaz.Maybe.Just
+import scalaz.Maybe.{Empty, Just}
 import scalaz.Scalaz._
 import scalaz._
 
-object Indexer {
-  sealed trait IndexerError
-  case class IndexTargetNotFoundInDatabase(id: UUIDFor[File]) extends IndexerError
-  case class IndexTargetNotFoundInFileSystem(key: ApiKeyFor[File]) extends IndexerError
+object FileSystemIndexer {
+  sealed trait FileIndexerError
+  case class IndexTargetNotFoundInDatabase(id: UUIDFor[File]) extends FileIndexerError
+  case class IndexTargetNotFoundInFileSystem(key: ApiKeyFor[File]) extends FileIndexerError
 
   object FileTree {
     implicit val fileTreeShow: Show[FileTree] =
@@ -38,7 +39,7 @@ object Indexer {
   sealed trait FileTree {
     def findByPath(path: FilePath): Maybe[FileTree] =
       this match {
-        case Leaf(file) => if (file.path === path) Just(this) else empty
+        case Leaf(file) => if (file.path === path) Just(this) else Empty()
         case Node(file, _) if file.path === path => Just(this)
         case Node(file, children) if file.path.containsSub(path) =>
           children.flatMap(_.findByPath(path).toIList).headMaybe
@@ -56,61 +57,54 @@ object Indexer {
 
 }
 
-trait Indexer[F[_]] {
+trait FileSystemIndexer[F[_]] {
   def newIndex(apiKey: ApiKeyFor[File]): F[UUIDFor[File]]
   def index(id: UUIDFor[File]): F[IList[DatabaseFile]]
 }
 
-class IndexerImpl[F[_], M[_], N[_]](
-  songDb: DatabaseSongs[M],
+class FileSystemIndexerImpl[F[_], M[_], N[_]](
+  fileDb: DatabaseFiles[M],
   fileSystemProvider: ApiKey => FileSystem[N],
-  logger: Logger[F])(
-  mToF: M ~> F, nToF: N ~> F
-)(implicit
-    F: MonadError[F, IndexerError],
-    N: Monad[N],
-    M: Monad[M]
-) extends Indexer[F] {
+  logger: Logger[F] )(
+  mToF: M ~> F,
+  nToF: N ~> F)(implicit
+  F: MonadError[F, FileIndexerError],
+  N: Monad[N],
+  M: Monad[M]
+) extends FileSystemIndexer[F] {
 
   def newIndex(apiKey: ApiKeyFor[File]): F[UUIDFor[File]] = {
     val keyPath = apiKeyToPath(apiKey.value)
     val fileSystem = fileSystemProvider(apiKey.value)
     for {
-      _ <- logger.verbose("Checking if the new index root at " + keyPath.asString + " exists.")
-      newIndexFile <- maybeToF(fileSystem.fileAt(keyPath), nToF)(IndexTargetNotFoundInFileSystem(apiKey))
+      _ <- logger.verbose(show"Checking if the new index root at $keyPath exists.")
+
+      newIndexFile <- nToF(fileSystem.fileAt(keyPath)).liftEmpty[FileIndexerError].apply {
+        logger.info(show"Failed to find index target $apiKey in fs.") *> IndexTargetNotFoundInFileSystem(apiKey).pure[F]
+      }
 
       newIndexId = UUID.randomUUID().asEntityId[File]
-      _ <- logger.verbose("New index root at " + keyPath.asString + " exists. Storing in db with id " + newIndexId.value.toString)
-      _ <- mToF(songDb.insertFile(newIndexId, fileToDatabaseFile(newIndexFile, empty, makePathToApiKeyFunc(apiKey.value))))
-      _ <- logger.verbose("Successfully stored new index root " + newIndexId)
+      _ <-
+        logger.verbose(show"New index root at $keyPath exists. Storing in db with id $newIndexId") *>
+        mToF(fileDb.insertFile(newIndexId, fileToDatabaseFile(newIndexFile, Empty(), makePathToApiKeyFunc(apiKey.value)))) <*
+        logger.verbose(show"Successfully stored new index root $newIndexId")
     } yield newIndexId
   }
 
   def index(id: UUIDFor[File]): F[IList[DatabaseFile]] = {
     for {
-      dbFile <- maybeToF(songDb.getFile(id), mToF)(IndexTargetNotFoundInDatabase(id))
-      fileSystem = fileSystemProvider(dbFile.apiKey.value)
-      fileSystemTree <- maybeToF(fileTree(apiKeyToPath(dbFile.apiKey.value), empty, fileSystem), nToF)(IndexTargetNotFoundInFileSystem(dbFile.apiKey))
-      _ <- logger.info(fileSystemTree)
-      storedTree <- mToF(storeTree(fileSystemTree, empty, makePathToApiKeyFunc(dbFile.apiKey.value)))
+      dbFile <- mToF(fileDb.getFile(id)).liftEmpty[FileIndexerError].apply {
+        logger.info(show"Failed to find index target $id in db.") *> IndexTargetNotFoundInDatabase(id).pure[F]
+      }
+      apiKey = dbFile.apiKey
+
+      fileSystem = fileSystemProvider(apiKey.value)
+      fileSystemTree <- nToF(fileTree(apiKeyToPath(apiKey.value), Empty(), fileSystem)).liftEmpty[FileIndexerError].apply {
+        logger.info(show"Failed to find index target $apiKey") *> IndexTargetNotFoundInFileSystem(apiKey).pure[F]
+      }
+      storedTree <- mToF(storeTree(fileSystemTree, Empty(), makePathToApiKeyFunc(dbFile.apiKey.value)))
     } yield storedTree
   }
-
-
-  def maybeToF[G[_], A](maybeA: => G[Maybe[A]], nt: G ~> F)(raiseError: => IndexerError): F[A] =
-    for {
-      maybeResult <- nt(maybeA)
-      result <- maybeResult.getOrElseF[F](raiseAndLogError[A](raiseError))
-    } yield result
-
-  def validationToF[G[_], A, B](validationA: G[Validation[A, B]], nt: G ~> F)(raiseError: A => IndexerError): F[B] =
-    for {
-      validationResult <- nt(validationA)
-      result <- validationResult.fold(err => raiseAndLogError(raiseError(err)), F.pure(_))
-    } yield result
-
-  def raiseAndLogError[A](err: IndexerError): F[A] =
-    logger.error(err.toString) *> F.raiseError[A](err)
 
   def apiKeyToPath(key: ApiKey): FilePath =
     key.fold(k => filePath(PathPart(k)), k => filePath(Paths.get(k)))
@@ -129,7 +123,7 @@ class IndexerImpl[F[_], M[_], N[_]](
           N.point(Just(Leaf(file)))
 
       },
-      N.point(empty)
+      N.point(Empty())
     ))
 
   def makePathToApiKeyFunc(initialKey: ApiKey): FilePath => ApiKey =
@@ -143,10 +137,10 @@ class IndexerImpl[F[_], M[_], N[_]](
     val fileId: UUIDFor[File] = UUID.randomUUID().asEntityId
 
     def saveDatabaseFile(file: DatabaseFile): M[(UUIDFor[File], DatabaseFile)] =
-      songDb.updateFileByApiKey(file).flatMap (
+      fileDb.updateFileByApiKey(file).flatMap (
         _.cata(
           M.point(_),
-          songDb.insertFile(fileId, file).map(_ => fileId -> file)
+          fileDb.insertFile(fileId, file).map(_ => fileId -> file)
         )
       )
 
