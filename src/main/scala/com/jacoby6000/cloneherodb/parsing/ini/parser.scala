@@ -60,7 +60,7 @@ object parser {
 
   val ignoreChars = Set('"')
 
-  val ignore = P(CharsWhileIn('_' :: ignoreChars.toList, 0))
+  val ignore = P(CharsWhileIn(' ' :: ignoreChars.toList, 0))
 
   val section: P[INISectionName] = P("[" ~ alphaNumDash.! ~ "]" ~ End).map(INISectionName(_))
   val key: P[INIKey] = P(alphaNumDash.!)map(INIKey(_))
