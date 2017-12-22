@@ -10,6 +10,8 @@ import com.jacoby6000.cloneherodb.syntax.Shows
 import scalaz._
 import Scalaz._
 
+import scala.collection.immutable.List
+
 object codecs extends DataCodecInstances {
 
 
