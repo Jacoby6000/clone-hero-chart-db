@@ -1,7 +1,7 @@
 package com.jacoby6000.cloneherodb
 
 
-package object predef
+package object cloneherodb
   extends JavaCompatCancer
     with ScalaPrimitives
     with ScalazTypeclassInstances
