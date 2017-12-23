@@ -14,7 +14,7 @@ lazy val server = (project in file("."))
     libraryDependencies ++= rootProjectDependencies,
     scalacOptions ++= Seq(
       "-Ysysdef", "",
-      "-Ypredef", "com.jacoby6000.cloneherodb._"
+      "-Ypredef", "com.jacoby6000.cloneherodb.predef._"
     )
   )
 
