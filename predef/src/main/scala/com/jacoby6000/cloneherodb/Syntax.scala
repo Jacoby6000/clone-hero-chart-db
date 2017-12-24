@@ -1,8 +1,6 @@
-package com.jacoby6000.cloneherodb.predef
+package com.jacoby6000.cloneherodb
 
-import com.jacoby6000.LowPrioritySyntax
-
-import scala.collection.mutable.ArrayOps
+import scala.inline
 
 trait Syntax extends LowPrioritySyntax {
 
@@ -10,6 +8,7 @@ trait Syntax extends LowPrioritySyntax {
 
   import scala.collection.immutable.StringOps
   import scala.collection.mutable
+  import scala.collection.mutable.ArrayOps
 
   @inline implicit def stringOps(s: String): StringOps = new StringOps(s)
   @inline implicit def unstringOps(s: StringOps): String = s.repr
@@ -44,16 +43,15 @@ trait Syntax extends LowPrioritySyntax {
 }
 
 trait LowPrioritySyntax extends ScalaPrimitives {
-  import scala.runtime
-  import scala.inline
+  import scala.runtime._
 
-  @inline implicit def byteWrapper(x: Byte): RichByte          = new runtime.RichByte(x)
-  @inline implicit def shortWrapper(x: Short): RichShort       = new runtime.RichShort(x)
-  @inline implicit def intWrapper(x: Int): RichInt             = new runtime.RichInt(x)
-  @inline implicit def charWrapper(c: Char): RichChar          = new runtime.RichChar(c)
-  @inline implicit def longWrapper(x: Long): RichLong          = new runtime.RichLong(x)
-  @inline implicit def floatWrapper(x: Float): RichFloat       = new runtime.RichFloat(x)
-  @inline implicit def doubleWrapper(x: Double): RichDouble    = new runtime.RichDouble(x)
-  @inline implicit def booleanWrapper(x: Boolean): RichBoolean = new runtime.RichBoolean(x)
+  @inline implicit def byteWrapper(x: Byte): RichByte          = new RichByte(x)
+  @inline implicit def shortWrapper(x: Short): RichShort       = new RichShort(x)
+  @inline implicit def intWrapper(x: Int): RichInt             = new RichInt(x)
+  @inline implicit def charWrapper(c: Char): RichChar          = new RichChar(c)
+  @inline implicit def longWrapper(x: Long): RichLong          = new RichLong(x)
+  @inline implicit def floatWrapper(x: Float): RichFloat       = new RichFloat(x)
+  @inline implicit def doubleWrapper(x: Double): RichDouble    = new RichDouble(x)
+  @inline implicit def booleanWrapper(x: Boolean): RichBoolean = new RichBoolean(x)
 }
 

@@ -1,10 +1,14 @@
-package com.jacoby6000.cloneherodb.predef
+package com.jacoby6000.cloneherodb
 
+import scalaz._
+import Scalaz._
 import cats.effect.Async
+import java.lang.Throwable
+import scala.Either
+import shims._
 
-trait CatsCompat {
-  import scalaz._
-  import Scalaz._
+trait CatsCompat extends ScalaPrimitives {
+
 
   implicit def eitherTAsyncInstance[M[_], E](implicit M: Async[M]): Async[EitherT[M, E, ?]] =
     new Async[EitherT[M, E, ?]] {

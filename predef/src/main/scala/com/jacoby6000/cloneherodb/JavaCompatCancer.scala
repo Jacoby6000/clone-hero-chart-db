@@ -1,4 +1,6 @@
-package com.jacoby6000.cloneherodb.predef
+package com.jacoby6000.cloneherodb
+
+import scala.inline
 
 trait JavaCompatCancer extends ScalaPrimitives {
 

@@ -1,4 +1,4 @@
-package com.jacoby6000.cloneherodb.predef
+package com.jacoby6000.cloneherodb
 
 // Scalaz typeclass instances which should come from scalaz, but don't.  Anything in here should be PR'd to scalaz.
 trait ScalazTypeclassInstances {

@@ -1,5 +1,4 @@
-package com.jacoby6000.cloneherodb
-
+package com.jacoby6000
 
 package object cloneherodb
   extends JavaCompatCancer

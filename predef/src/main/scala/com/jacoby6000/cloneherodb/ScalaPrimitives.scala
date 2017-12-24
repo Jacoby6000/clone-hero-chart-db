@@ -1,4 +1,4 @@
-package com.jacoby6000.cloneherodb.predef
+package com.jacoby6000.cloneherodb
 
 trait ScalaPrimitives {
   type AnyRef = scala.AnyRef
@@ -16,5 +16,4 @@ trait ScalaPrimitives {
   type =:=[A, B] = scala.Predef.=:=[A, B]
   type Array[A] = scala.Array[A]
   val Array = scala.Array
-
 }
