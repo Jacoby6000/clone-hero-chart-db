@@ -5,7 +5,6 @@ import com.jacoby6000.cloneherodb.config._
 
 lazy val server = (project in file("."))
   .dependsOn(config, predef)
-  .aggregate(config, predef)
   .configs(IntegrationTest)
   .settings(Defaults.itSettings)
   .settings(commonSettings)
