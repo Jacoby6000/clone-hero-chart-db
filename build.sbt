@@ -4,8 +4,7 @@ import com.jacoby6000.cloneherodb.build.settings._
 import com.jacoby6000.cloneherodb.config._
 
 lazy val server = (project in file("."))
-  .dependsOn(config)
-  .aggregate(config)
+  .dependsOn(config, predef)
   .configs(IntegrationTest)
   .settings(Defaults.itSettings)
   .settings(commonSettings)
@@ -16,6 +15,13 @@ lazy val server = (project in file("."))
       "-Ysysdef", "",
       "-Ypredef", "com.jacoby6000.cloneherodb._"
     )
+  )
+
+lazy val predef = (project in file("predef"))
+  .settings(commonSettings)
+  .settings(
+    libraryDependencies ++= catsEffect,
+    scalacOptions ++= Seq("-Yno-imports", "-Yno-predef")
   )
 
 // configuration sub-project build located in <clone-hero-chart-db>/project/metabuild.sbt

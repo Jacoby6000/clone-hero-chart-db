@@ -51,6 +51,10 @@ object settings {
     "com.lihaoyi" %% "fastparse" % "1.0.0"
   )
 
+  val catsEffect = Seq(
+    "org.typelevel" %% "cats-effect" % "0.5"
+  )
+
   val sanityDependencies = Seq(
     "org.scalaz"     %% "scalaz-core" % "7.2.17",          // FP
     "com.codecommit" %% "shims"       % "1.0",             // cats/scalaz compat
