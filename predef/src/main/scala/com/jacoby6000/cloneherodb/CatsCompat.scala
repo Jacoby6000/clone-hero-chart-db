@@ -1,24 +1,16 @@
-package com.jacoby6000
+package com.jacoby6000.cloneherodb
 
+import scalaz._
+import Scalaz._
 import cats.effect.Async
+import java.lang.Throwable
+import scala.Either
 import shims._
 
-import scalaz._, Scalaz._
+trait CatsCompat extends ScalaPrimitives {
 
-package object cloneherodb {
-  implicit val dequeueMonad: MonadPlus[Dequeue] =
-    new MonadPlus[Dequeue] {
-      override def point[A](a: => A): Dequeue[A] = Dequeue(a)
-      override def bind[A, B](fa: Dequeue[A])(f: (A) => Dequeue[B]) = fa.foldMap(f)
-      override def empty[A] = Dequeue.empty[A]
-      override def plus[A](a: Dequeue[A], b: => Dequeue[A]) = a ++ b
-    }
 
-  implicit def eitherTAsync[M[_]: Async, E]: Async[EitherT[M, E, ?]] = ScopeSeparator.eitherTAsyncInstance
-}
-
-private object ScopeSeparator {
-  def eitherTAsyncInstance[M[_], E](implicit M: Async[M]): Async[EitherT[M, E, ?]] =
+  implicit def eitherTAsyncInstance[M[_], E](implicit M: Async[M]): Async[EitherT[M, E, ?]] =
     new Async[EitherT[M, E, ?]] {
       override def async[A](k: (Either[Throwable, A] => Unit) => Unit): EitherT[M, E, A] =
         EitherT.right(M.async(k))
@@ -30,7 +22,7 @@ private object ScopeSeparator {
         fa.flatMap(f)
 
       override def tailRecM[A, B](a: A)(f: A => EitherT[M, E, Either[A, B]]): EitherT[M, E, B] =
-        BindRec[EitherT[M, E, ?]].tailrecM(f andThen (_.map(_.disjunction)))(a)
+        EitherT.eitherTBindRec[M, E].tailrecM(f andThen (_.map(_.disjunction)))(a)
 
       override def raiseError[A](e: Throwable): EitherT[M, E, A] =
         EitherT.right(M.raiseError(e))
@@ -40,4 +32,5 @@ private object ScopeSeparator {
 
       override def pure[A](x: A): EitherT[M, E, A] = EitherT.right(M.pure(x))
     }
+
 }

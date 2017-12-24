@@ -26,7 +26,7 @@ class FileDBTests extends FunSuite with Matchers with IOChecker {
 
   val conf =
     loadCloneHeroDbConfig((path"src" / path"it" /  path"resources" / path"reference.conf").javaPath)
-      .fold(errs => sys.error(failuresToErrorMessage(errs)), identity(_))
+      .fold(errs => scala.sys.error(failuresToErrorMessage(errs)), identity(_))
 
   val driver = "org.postgresql.Driver"
   val connectionString = s"jdbc:postgresql://${conf.database.host}:${conf.database.port}/${conf.database.databaseName}"

@@ -26,7 +26,7 @@ object FileSystemIndexer {
       Show.show { tree =>
         def go(n: Int, tree: FileTree): Cord =
           Cord.stringToCord(" " * n) ++ (tree match {
-            case Leaf(file) => Cord.stringToCord(file.name.value) + "\n"
+            case Leaf(file) => Cord.stringToCord(file.name.value + "\n")
             case Node(file, children) =>
               Cord.stringToCord(file.name.value) ++
                 Cord.stringToCord("\n") ++
@@ -43,6 +43,8 @@ object FileSystemIndexer {
         case Node(file, _) if file.path === path => Just(this)
         case Node(file, children) if file.path.containsSub(path) =>
           children.flatMap(_.findByPath(path).toIList).headMaybe
+
+        case Node(_, _) => Empty()
 
       }
 

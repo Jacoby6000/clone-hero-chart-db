@@ -51,6 +51,10 @@ object settings {
     "com.lihaoyi" %% "fastparse" % "1.0.0"
   )
 
+  val catsEffect = Seq(
+    "org.typelevel" %% "cats-effect" % "0.5"
+  )
+
   val sanityDependencies = Seq(
     "org.scalaz"     %% "scalaz-core" % "7.2.17",          // FP
     "com.codecommit" %% "shims"       % "1.0",             // cats/scalaz compat
@@ -69,7 +73,8 @@ object settings {
       sanityDependencies
 
   lazy val commonSettings = Seq(
-    scalaVersion := "2.12.4",
+    scalaOrganization := "org.typelevel",
+    scalaVersion := "2.12.4-bin-typelevel-4",
 
     libraryDependencies ++= sanityDependencies,
 
@@ -119,10 +124,20 @@ object settings {
       "-Ywarn-unused:implicits",           // Warn if an implicit parameter is unused.
       "-Ywarn-unused:imports",             // Warn if an import selector is not referenced.
       "-Ywarn-unused:patvars",             // Warn if a variable bound in a pattern is unused.
-      "-Ywarn-value-discard"               // Warn when non-Unit expression results are unused.
+      "-Ywarn-value-discard",              // Warn when non-Unit expression results are unused.
+
+      // Typelevel scala flags
+      "-Yinduction-heuristics",       // speeds up the compilation of inductive implicit resolution
+      "-Yliteral-types",              // literals can appear in type position
+      "-Xstrict-patmat-analysis",     // more accurate reporting of failures of match exhaustivity
+      "-Xlint:strict-unsealed-patmat" // warn on inexhaustive matches against unsealed traits
     ),
 
-    scalacOptions in (Compile, console) --= Seq("-Ywarn-unused:imports", "-Xfatal-warnings")
+    scalacOptions in (Compile, console) --= Seq("-Ywarn-unused:imports", "-Xfatal-warnings"),
+
+    // Shitty hack because updateSbtClassifiers breaks for typelevel.updateSbtClassifiers
+    scalaVersion      in updateSbtClassifiers := "2.12.4",
+    scalaOrganization in updateSbtClassifiers := "org.scala-lang"
   )
 
 }
