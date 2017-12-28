@@ -5,7 +5,7 @@
 # clone-hero-chart-db 
 
 
-System for indexing clone hero charts
+System for indexing [clone hero](https://docs.google.com/document/d/14gJj66WpGKFPJOBCQ1HTOCrXuidWmGMVI2CIXA1-Qws/edit) charts
 
 ## Contributing
 
